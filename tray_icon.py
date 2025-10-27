@@ -26,6 +26,17 @@ WM_LBUTTONDBLCLK = 0x0203
 WM_RBUTTONUP = 0x0205
 WM_USER = 0x0400
 
+# Win32 menu constants for context menu
+MF_STRING = 0x00000000
+MF_SEPARATOR = 0x00000800
+TPM_LEFTALIGN = 0x0000
+TPM_RETURNCMD = 0x0100
+
+# Menu item IDs
+ID_OPEN = 1001
+ID_QUICK_ADD = 1002
+ID_QUIT = 1003
+
 # Define NOTIFYICONDATA structure using ctypes
 class NOTIFYICONDATA(ctypes.Structure):
     _fields_ = [
@@ -43,7 +54,7 @@ class TrayIcon:
     Simple system tray icon implementation
     - Left single-click: Toggle application window (show/hide)
     - Left double-click: Quick add expense dialog
-    - Right click: Context menu (future feature)
+    - Right click: Context menu with Open, Quick Add, and Quit options
     """
     
     def __init__(self, tooltip="LiteFinPad", toggle_callback=None, quick_add_callback=None, quit_callback=None):
@@ -306,7 +317,7 @@ class TrayIcon:
             
             shell32 = ctypes.windll.shell32
             shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(nid))
-            log_info("Icon removed from system tray")
+            log_debug("Icon removed from system tray")
             
         except Exception as e:
             log_error("Error removing from tray", e)
@@ -374,16 +385,85 @@ class TrayIcon:
         self.pending_single_click_timer = threading.Timer(self.double_click_window, execute_single_click)
         self.pending_single_click_timer.start()
     
+    def create_context_menu(self):
+        """
+        Create Win32 popup menu with app actions.
+        
+        Menu structure (top to bottom):
+        - Open LiteFinPad
+        - Quick Add Expense
+        - (separator)
+        - Quit
+        
+        Returns:
+            Handle to the created popup menu
+        """
+        menu = win32gui.CreatePopupMenu()
+        
+        # Add menu items in natural order using AppendMenu (adds to end)
+        win32gui.AppendMenu(menu, MF_STRING, ID_OPEN, "Open LiteFinPad")
+        win32gui.AppendMenu(menu, MF_STRING, ID_QUICK_ADD, "Quick Add Expense")
+        win32gui.AppendMenu(menu, MF_SEPARATOR, 0, "")  # Separator requires empty string, not None
+        win32gui.AppendMenu(menu, MF_STRING, ID_QUIT, "Quit")
+        
+        log_debug("[TRAY] Context menu created with 3 items + separator")
+        return menu
+    
+    def show_context_menu(self):
+        """
+        Display context menu at cursor position.
+        Thread-safe: Can be called from Win32 message loop thread.
+        """
+        try:
+            # Get current cursor position
+            pos = win32gui.GetCursorPos()
+            log_debug(f"[TRAY] Showing context menu at position {pos}")
+            
+            # Create the menu
+            menu = self.create_context_menu()
+            
+            # Set foreground window (required for menu to dismiss properly)
+            win32gui.SetForegroundWindow(self.hwnd)
+            
+            # Display menu and get selected command ID
+            # TPM_RETURNCMD makes TrackPopupMenu return the selected command ID
+            cmd = win32gui.TrackPopupMenu(
+                menu,
+                TPM_LEFTALIGN | TPM_RETURNCMD,
+                pos[0], pos[1],
+                0,
+                self.hwnd,
+                None
+            )
+            
+            # Handle user selection
+            if cmd == ID_OPEN:
+                log_info("[TRAY MENU] Open LiteFinPad selected")
+                if self.toggle_callback:
+                    self.toggle_callback()
+            elif cmd == ID_QUICK_ADD:
+                log_info("[TRAY MENU] Quick Add Expense selected")
+                if self.quick_add_callback:
+                    self.quick_add_callback()
+            elif cmd == ID_QUIT:
+                log_info("[TRAY MENU] Quit selected")
+                if self.quit_callback:
+                    self.quit_callback()
+            elif cmd == 0:
+                log_debug("[TRAY MENU] Menu dismissed (no selection)")
+            
+            # Cleanup
+            win32gui.DestroyMenu(menu)
+            log_debug("[TRAY] Context menu destroyed")
+            
+        except Exception as e:
+            log_error(f"[TRAY] Error showing context menu: {e}", e)
+    
     def on_right_click(self):
-        """Handle right click on tray icon - context menu (future)"""
-        log_info("Tray icon right-clicked")
-        # For now, just toggle window like single-click
-        # TODO: Implement context menu in future
-        if self.toggle_callback:
-            try:
-                self.toggle_callback()
-            except Exception as e:
-                log_error("Error in toggle callback", e)
+        """Handle right click on tray icon - show context menu"""
+        log_info("[TRAY] Right-click: showing context menu")
+        # Show Win32 context menu (thread-safe)
+        self.show_context_menu()
     
     def on_double_click(self):
         """Handle double click on tray icon - opens quick add dialog"""
@@ -437,7 +517,7 @@ class TrayIcon:
     def stop(self):
         """Stop the tray icon"""
         try:
-            log_info("Stopping tray icon...")
+            log_debug("Stopping tray icon...")
             self.running = False
             
             # Remove from tray
@@ -448,7 +528,7 @@ class TrayIcon:
                 win32gui.DestroyWindow(self.hwnd)
                 self.hwnd = None
             
-            log_info("Tray icon stopped")
+            log_debug("Tray icon stopped")
             
         except Exception as e:
             log_error("Error stopping tray icon", e)

@@ -35,6 +35,31 @@ class DialogHelper:
         return dialog
     
     @staticmethod
+    def create_dialog_no_transient(parent, title, width, height):
+        """
+        Creates a Toplevel dialog without transient setting.
+        Used for dialogs that need to work independently of parent window state
+        (e.g., Quick Add dialog from tray icon).
+        
+        Args:
+            parent: Parent window
+            title: Dialog title
+            width: Dialog width in pixels
+            height: Dialog height in pixels
+            
+        Returns:
+            tk.Toplevel: Configured dialog window
+        """
+        dialog = tk.Toplevel(parent)
+        dialog.title(title)
+        dialog.resizable(False, False)
+        # NOTE: No transient() call - dialog works independently
+        dialog.configure(bg=config.Colors.BG_DIALOG)
+        dialog.geometry(f"{width}x{height}")
+        dialog.withdraw()  # Hide until fully configured
+        return dialog
+    
+    @staticmethod
     def create_content_frame(dialog, padding="15"):
         """
         Creates a standard content frame for dialogs.
@@ -152,6 +177,47 @@ class DialogHelper:
                 y = (screen_height - dialog_height) // 2
         
         dialog.geometry(f"+{x}+{y}")
+    
+    @staticmethod
+    def position_with_main_window(dialog, screen_width, screen_height, 
+                                   main_width=650, main_height=725, offset=450,
+                                   dialog_width=None, dialog_height=None):
+        """
+        Position dialog to align with main window in lower-right corner.
+        
+        This is a specialized positioning method for dialogs that need to align
+        with the main window's position rather than being parent-relative.
+        Used primarily by Quick Add dialog which positions based on screen
+        dimensions and main window size.
+        
+        Args:
+            dialog: Dialog to position
+            screen_width: Screen width in pixels
+            screen_height: Screen height in pixels
+            main_width: Main window width (default: 650)
+            main_height: Main window height (default: 725)
+            offset: Vertical offset from bottom (default: 450)
+            dialog_width: Dialog width (optional, will query dialog if not provided)
+            dialog_height: Dialog height (optional, will query dialog if not provided)
+        """
+        # Get dialog's size - use provided dimensions or query dialog
+        if dialog_width is None or dialog_height is None:
+            dialog.update_idletasks()
+            dialog_width = dialog.winfo_reqwidth()
+            dialog_height = dialog.winfo_reqheight()
+        
+        # Calculate position to align with main window's left edge
+        x = screen_width - main_width - 20
+        y = screen_height - main_height - offset
+        
+        # Ensure dialog stays on screen with minimum margins
+        if y < 20:
+            y = 20
+        if x < 20:
+            x = 20
+        
+        # Set full geometry (size + position)
+        dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
     
     @staticmethod
     def bind_escape_to_close(dialog):

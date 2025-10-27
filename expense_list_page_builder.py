@@ -1,0 +1,265 @@
+"""
+Expense List Page Builder - UI Construction for Expense List Page
+Separates UI construction from update logic for easier maintenance and reusability
+"""
+
+import tkinter as tk
+from tkinter import ttk
+import config
+from analytics import ExpenseAnalytics
+
+
+class ExpenseListPageBuilder:
+    """Handles UI construction for the expense list page"""
+    
+    def __init__(self, parent_frame, expense_tracker, callbacks):
+        """
+        Initialize the builder
+        
+        Args:
+            parent_frame: The main container frame for the expense list page
+            expense_tracker: ExpenseTracker instance
+            callbacks: Dictionary with required callback functions:
+                - 'show_main_page': Navigate back to dashboard
+                - 'export_dialog': Export expenses
+                - 'import_dialog': Import expenses
+                - 'on_expense_change': Handle table changes
+                - 'update_display': Update dashboard display
+                - 'update_expense_metrics': Update expense metrics
+                - 'status_manager': StatusBarManager instance
+                - 'page_manager': PageManager instance
+                - 'gui_instance': Main GUI instance
+        """
+        self.parent_frame = parent_frame
+        self.expense_tracker = expense_tracker
+        self.callbacks = callbacks
+        
+        # Track previous expense count for action detection
+        self._previous_expense_count = [len(self.expense_tracker.expenses)]
+        
+    def build_all(self):
+        """
+        Build the complete expense list page and return widget references
+        
+        Returns:
+            Dictionary containing:
+                - 'metric_labels': Dictionary of labels for updating
+                - 'table_manager': ExpenseTableManager instance
+                - 'count_tracker': Reference to expense count tracker
+        """
+        # Create the main expense list frame
+        expense_list_frame = ttk.Frame(self.parent_frame, padding="25 25 25 0")
+        expense_list_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        # Configure grid weights
+        expense_list_frame.columnconfigure(0, weight=1)
+        expense_list_frame.rowconfigure(2, weight=1)  # Table area gets weight
+        
+        # Build header (row 0)
+        self._create_header(expense_list_frame)
+        
+        # Build metrics section (row 1)
+        metric_labels = self._create_metrics_section(expense_list_frame)
+        
+        # Build table section (row 2)
+        table_manager = self._create_table_section(expense_list_frame)
+        
+        # Build quick add section (row 3)
+        quick_add_helper = self._create_quick_add_section(expense_list_frame, table_manager)
+        
+        # Initially hide the expense list page
+        expense_list_frame.grid_remove()
+        
+        return {
+            'expense_list_frame': expense_list_frame,
+            'metric_labels': metric_labels,
+            'table_manager': table_manager,
+            'count_tracker': self._previous_expense_count,
+            'quick_add_helper': quick_add_helper
+        }
+    
+    def _create_header(self, parent):
+        """Create the header with back button, title, and export/import buttons"""
+        header_frame = ttk.Frame(parent)
+        header_frame.grid(row=0, column=0, pady=(0, 15), sticky=(tk.W, tk.E))
+        header_frame.columnconfigure(1, weight=1)  # Give weight to title
+        
+        # Back button (simple arrow icon)
+        back_button = ttk.Button(header_frame, text="←", 
+                               command=self.callbacks['show_main_page'], 
+                               style='Modern.TButton', width=3)
+        back_button.grid(row=0, column=0, sticky=tk.W, padx=(0, 15))
+        
+        # Title
+        title_label = ttk.Label(header_frame, text="Expense List", style='Title.TLabel')
+        title_label.grid(row=0, column=1, sticky=(tk.W, tk.E))
+        
+        # Button frame (on the right side) - stacks Export and Import buttons
+        button_frame = ttk.Frame(header_frame)
+        button_frame.grid(row=0, column=2, sticky=tk.E, padx=(15, 0))
+        
+        # Export button
+        export_button = ttk.Button(button_frame, text="📤 Export", 
+                                   command=self.callbacks['export_dialog'],
+                                   width=10)
+        export_button.pack(pady=(0, 5))
+        
+        # Import button (below Export)
+        import_button = ttk.Button(button_frame, text="📥 Import", 
+                                   command=self.callbacks['import_dialog'],
+                                   width=10)
+        import_button.pack()
+    
+    def _create_metrics_section(self, parent):
+        """Create the expense metrics section (median, total, largest)"""
+        metrics_frame = ttk.LabelFrame(parent, text="Expense Insights", padding="10")
+        metrics_frame.grid(row=1, column=0, pady=(0, 10), sticky=(tk.W, tk.E))
+        
+        # Get initial metrics data
+        median_expense, expense_count = ExpenseAnalytics.calculate_median_expense(
+            self.expense_tracker.expenses
+        )
+        largest_expense, largest_desc = ExpenseAnalytics.calculate_largest_expense(
+            self.expense_tracker.expenses
+        )
+        total_amount = self.expense_tracker.monthly_total
+        
+        # Three columns: Typical Expense | Total Amount | Largest Expense
+        row = ttk.Frame(metrics_frame)
+        row.pack(fill=tk.X)
+        
+        # Typical expense (left)
+        typical_frame = ttk.Frame(row)
+        typical_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        
+        ttk.Label(typical_frame, text="Typical Expense", 
+                 font=config.get_font(config.Fonts.SIZE_SMALL, 'bold'), 
+                 foreground=config.Colors.TEXT_GRAY_DARK).pack()
+        list_median_label = ttk.Label(typical_frame, text=f"${median_expense:.2f}", 
+                                     style='Analytics.TLabel')
+        list_median_label.pack()
+        median_count_label = ttk.Label(typical_frame, 
+                                      text=f"(median of {expense_count} expense{'s' if expense_count != 1 else ''})", 
+                                      font=config.Fonts.LABEL_SMALL, 
+                                      foreground=config.Colors.TEXT_GRAY_MEDIUM)
+        median_count_label.pack()
+        
+        # Total amount (center)
+        total_frame = ttk.Frame(row)
+        total_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+        
+        ttk.Label(total_frame, text="Total Amount", 
+                 font=config.get_font(config.Fonts.SIZE_SMALL, 'bold'), 
+                 foreground=config.Colors.GREEN_PRIMARY).pack()
+        list_total_label = ttk.Label(total_frame, text=f"${total_amount:.2f}", 
+                                    style='Analytics.TLabel', 
+                                    foreground=config.Colors.GREEN_PRIMARY)
+        list_total_label.pack()
+        expense_count_total = len(self.expense_tracker.expenses)
+        total_count_label = ttk.Label(total_frame, 
+                                     text=f"({expense_count_total} expense{'s' if expense_count_total != 1 else ''})", 
+                                     font=config.Fonts.LABEL_SMALL, 
+                                     foreground=config.Colors.TEXT_GRAY_MEDIUM)
+        total_count_label.pack()
+        
+        # Largest expense (right)
+        largest_frame = ttk.Frame(row)
+        largest_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        
+        ttk.Label(largest_frame, text="Largest Expense", 
+                 font=config.get_font(config.Fonts.SIZE_SMALL, 'bold'), 
+                 foreground=config.Colors.RED_PRIMARY).pack()
+        largest_label = ttk.Label(largest_frame, text=f"${largest_expense:.2f}", 
+                                 style='Analytics.TLabel')
+        largest_label.pack()
+        largest_desc_label = ttk.Label(largest_frame, text=f"({largest_desc})", 
+                                      font=config.Fonts.LABEL_SMALL, 
+                                      foreground=config.Colors.TEXT_GRAY_MEDIUM)
+        largest_desc_label.pack()
+        
+        # Return label references for updates
+        return {
+            'list_median_label': list_median_label,
+            'median_count_label': median_count_label,
+            'list_total_label': list_total_label,
+            'total_count_label': total_count_label,
+            'largest_label': largest_label,
+            'largest_desc_label': largest_desc_label
+        }
+    
+    def _create_table_section(self, parent):
+        """Create the expense table manager"""
+        # Create callback for expense changes
+        def on_expense_change():
+            # Get required callbacks
+            status_manager = self.callbacks['status_manager']
+            update_display = self.callbacks['update_display']
+            update_metrics = self.callbacks['update_expense_metrics']
+            
+            # CRITICAL: Sync the table's expense list back to main application
+            from expense_table import ExpenseTableManager
+            table_expenses = table_manager.get_expenses()
+            current_count = len(table_expenses)
+            
+            self.expense_tracker.expenses = [exp.to_dict() for exp in table_expenses]
+            
+            # Recalculate monthly total
+            self.expense_tracker.monthly_total = sum(exp['amount'] for exp in self.expense_tracker.expenses)
+            
+            # Save the updated data to disk
+            self.expense_tracker.save_data()
+            
+            # Detect action type and update status bar
+            if current_count < self._previous_expense_count[0]:
+                # Expense was deleted
+                status_manager.show(config.Messages.EXPENSE_DELETED, config.StatusBar.SUCCESS_ICON)
+            elif current_count == self._previous_expense_count[0]:
+                # Expense was edited (count stayed the same)
+                status_manager.show(config.Messages.EXPENSE_EDITED, config.StatusBar.SUCCESS_ICON)
+            # else: count increased, likely from inline add - status already shown
+            
+            # Update previous count for next time
+            self._previous_expense_count[0] = current_count
+            
+            # Update the main application display
+            update_display()
+            # Update expense metrics
+            update_metrics()
+            # Update tray icon tooltip with new total
+            self.expense_tracker.tray_icon_manager.update_tooltip()
+        
+        # Create a frame for the table at row=2 (row=1 is metrics, row=3 is quick add at bottom)
+        table_container = ttk.Frame(parent)
+        table_container.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        table_container.columnconfigure(0, weight=1)
+        table_container.rowconfigure(0, weight=1)
+        
+        from expense_table import ExpenseTableManager
+        table_manager = ExpenseTableManager(table_container, on_expense_change)
+        
+        # Initialize expense count after table is created
+        self._previous_expense_count[0] = len(self.expense_tracker.expenses)
+        
+        return table_manager
+    
+    def _create_quick_add_section(self, parent, table_manager):
+        """Create the quick add section at the bottom"""
+        from quick_add_helper import QuickAddHelper
+        
+        quick_add_helper = QuickAddHelper(
+            parent_widget=parent,
+            expense_tracker=self.expense_tracker,
+            on_add_callback=self.callbacks['update_display'],
+            status_manager=self.callbacks['status_manager'],
+            page_manager=self.callbacks['page_manager'],
+            table_manager=table_manager,
+            update_metrics_callback=self.callbacks['update_expense_metrics'],
+            count_tracker=self._previous_expense_count,
+            gui_instance=self.callbacks['gui_instance']
+        )
+        quick_add_frame = quick_add_helper.create_ui()
+        quick_add_frame.grid(row=3, column=0, pady=(10, 0), sticky=(tk.W, tk.E))
+        
+        # Store reference for later use (e.g., archive mode)
+        return quick_add_helper
+

@@ -11,7 +11,7 @@ if os.path.exists('widgets'):
         # Add tuple: (source_file, destination_directory)
         widgets_files.append((py_file, 'widgets'))
 
-datas = [('icon.ico', '.'), ('gui.py', '.'), ('expense_table.py', '.'), ('export_data.py', '.'), ('error_logger.py', '.'), ('analytics.py', '.'), ('data_manager.py', '.'), ('validation.py', '.')]
+datas = [('icon.ico', '.'), ('gui.py', '.'), ('expense_table.py', '.'), ('export_data.py', '.'), ('import_data.py', '.'), ('error_logger.py', '.'), ('analytics.py', '.'), ('data_manager.py', '.'), ('validation.py', '.'), ('config.py', '.'), ('dialog_helpers.py', '.'), ('tray_icon_manager.py', '.'), ('window_manager.py', '.'), ('window_animation.py', '.'), ('status_bar_manager.py', '.'), ('page_manager.py', '.'), ('quick_add_helper.py', '.'), ('archive_mode_manager.py', '.'), ('tooltip_manager.py', '.'), ('dashboard_page_builder.py', '.'), ('expense_list_page_builder.py', '.'), ('tray_icon.py', '.'), ('month_viewer.py', '.')]
 datas += widgets_files
 binaries = []
 hiddenimports = ['xlsxwriter', 'xlsxwriter.workbook', 'xlsxwriter.worksheet', 'xlsxwriter.format', 'fpdf', 'fpdf.fpdf', 'encodings', 'encodings.utf_8', 'encodings.ascii', 'encodings.latin_1', 'encodings.cp1252', 'html', 'html.parser', 'html.entities', 'urllib', 'urllib.parse', 'urllib.request', 'base64', 'zlib', 're', 'math', 'datetime', 'json']
@@ -41,7 +41,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='LiteFinPad_v3.5.2',
+    name='LiteFinPad_v3.5.3',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -61,5 +61,6 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='LiteFinPad_v3.5.2',
+    name='LiteFinPad_v3.5.3',
 )
+

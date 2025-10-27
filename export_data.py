@@ -19,7 +19,7 @@ import stat
 from datetime import datetime
 from typing import List, Dict, Optional
 from tkinter import messagebox, filedialog
-from error_logger import log_export_attempt, log_export_success, log_export_error, log_library_check, log_info, log_error, log_warning
+from error_logger import log_export_attempt, log_export_success, log_export_error, log_library_check, log_info, log_error, log_warning, log_debug
 import config
 from dialog_helpers import DialogHelper
 
@@ -27,17 +27,20 @@ from dialog_helpers import DialogHelper
 class DataExporterV2:
     """Optimized data exporter with smaller library footprint"""
     
-    def __init__(self, expenses: List[Dict], current_month: str):
+    def __init__(self, expenses: List[Dict], current_month: str, status_callback=None):
         """
         Initialize the exporter with expense data
         
         Args:
             expenses: List of expense dictionaries
             current_month: Current month string (YYYY-MM format)
+            status_callback: Optional callback function for status updates (icon, message)
         """
         self.expenses = expenses
         self.current_month = current_month
         self.month_name = datetime.strptime(current_month, "%Y-%m").strftime("%B %Y")
+        self.status_callback = status_callback
+        self.export_location = self._load_export_location()
     
     def generate_data_checksum(self, data: Dict) -> str:
         """
@@ -52,6 +55,84 @@ class DataExporterV2:
         # Convert to stable JSON string (sorted keys for consistency)
         json_str = json.dumps(data, sort_keys=True)
         return hashlib.sha256(json_str.encode()).hexdigest()
+    
+    def _load_export_location(self) -> str:
+        """Load the default export location from settings.ini"""
+        import configparser
+        import sys
+        
+        try:
+            config_parser = configparser.ConfigParser()
+            config_parser.read('settings.ini')
+            
+            if config_parser.has_section('Export'):
+                location = config_parser.get('Export', 'default_save_location', fallback='')
+                if location and os.path.exists(location):
+                    return location
+        except Exception:
+            pass
+        
+        # Default to application directory (where .exe or main.py is located)
+        if getattr(sys, 'frozen', False):
+            # Running as compiled executable
+            app_dir = os.path.dirname(sys.executable)
+        else:
+            # Running as Python script
+            app_dir = os.path.abspath('.')
+        
+        return app_dir
+    
+    def _save_export_location(self, location: str):
+        """Save the export location to settings.ini"""
+        import configparser
+        
+        try:
+            config_parser = configparser.ConfigParser()
+            config_parser.read('settings.ini')
+            
+            if not config_parser.has_section('Export'):
+                config_parser.add_section('Export')
+            
+            config_parser.set('Export', 'default_save_location', location)
+            
+            with open('settings.ini', 'w') as f:
+                config_parser.write(f)
+        except Exception as e:
+            log_error("Failed to save export location", e)
+    
+    def _get_shortened_path(self, path: str) -> str:
+        """
+        Smart path truncation: show drive + first folder + ... + last 2 folders
+        Example: C:\\Users\\...\\OneDrive\\Documents
+        """
+        # Truncate if path is longer than 45 characters and has more than 3 parts
+        if len(path) <= 45:
+            return path
+        
+        # Use forward slashes to split (works on Windows too)
+        if '\\' in path:
+            parts = path.split('\\')
+            sep = '\\'
+        else:
+            parts = path.split('/')
+            sep = '/'
+        
+        # Filter out empty parts
+        parts = [p for p in parts if p]
+        
+        # If path is simple (like "C:" or "C:\\Users"), don't truncate
+        if len(parts) <= 3:
+            return path
+        
+        # Get components: drive, first folder, last 2 folders
+        drive = parts[0]  # e.g., "C:"
+        first_folder = parts[1] if len(parts) > 1 else ""  # e.g., "Users"
+        second_last = parts[-2] if len(parts) > 1 else ""  # e.g., "OneDrive"
+        last_folder = parts[-1]  # e.g., "Documents"
+        
+        # Build shortened path: C:\\Users\\...\\OneDrive\\Documents
+        shortened = f"{drive}{sep}{first_folder}{sep}...{sep}{second_last}{sep}{last_folder}"
+        return shortened
         
     def export_to_excel(self, filename: Optional[str] = None) -> bool:
         """
@@ -86,18 +167,10 @@ class DataExporterV2:
             # Generate filename if not provided
             if not filename:
                 # Format: LF_October_2025_Expenses.xlsx
-                filename = f"LF_{self.month_name.replace(' ', '_')}_Expenses.xlsx"
+                filename = f"{config.Files.EXPORT_EXCEL_PREFIX}_{self.month_name.replace(' ', '_')}_Expenses{config.Files.EXCEL_EXT}"
             
-            # Ask user where to save
-            save_path = filedialog.asksaveasfilename(
-                defaultextension=".xlsx",
-                filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
-                initialfile=filename,
-                title="Save Excel Export"
-            )
-            
-            if not save_path:
-                return False  # User cancelled
+            # Use the saved export location
+            save_path = os.path.join(self.export_location, filename)
             
             # Create workbook and worksheet
             workbook = xlsxwriter.Workbook(save_path)
@@ -204,7 +277,7 @@ class DataExporterV2:
             log_export_success("Excel", save_path, len(self.expenses))
             
             messagebox.showinfo(
-                "Export Successful",
+                config.Messages.TITLE_EXPORT_SUCCESS,
                 f"Expenses exported successfully!\n\n"
                 f"File: {os.path.basename(save_path)}\n"
                 f"Location: {os.path.dirname(save_path)}\n"
@@ -212,12 +285,16 @@ class DataExporterV2:
                 f"Total Amount: ${total_amount:.2f}"
             )
             
+            # Update status bar if callback provided
+            if self.status_callback:
+                self.status_callback(f"Exported to Excel: {os.path.basename(save_path)}", config.StatusBar.SUCCESS_ICON)
+            
             return True
             
         except Exception as e:
             log_export_error("Excel", e, "general_error")
             messagebox.showerror(
-                "Export Error",
+                config.Messages.TITLE_EXPORT_ERROR,
                 f"Failed to export to Excel:\n{str(e)}\n\n"
                 "Check logs/error_log.txt for details."
             )
@@ -256,18 +333,10 @@ class DataExporterV2:
             # Generate filename if not provided
             if not filename:
                 # Format: LF_October_2025_Expenses.pdf
-                filename = f"LF_{self.month_name.replace(' ', '_')}_Expenses.pdf"
+                filename = f"{config.Files.EXPORT_PDF_PREFIX}_{self.month_name.replace(' ', '_')}_Expenses{config.Files.PDF_EXT}"
             
-            # Ask user where to save
-            save_path = filedialog.asksaveasfilename(
-                defaultextension=".pdf",
-                filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
-                initialfile=filename,
-                title="Save PDF Export"
-            )
-            
-            if not save_path:
-                return False  # User cancelled
+            # Use the saved export location
+            save_path = os.path.join(self.export_location, filename)
             
             # Create PDF
             pdf = FPDF()
@@ -367,7 +436,7 @@ class DataExporterV2:
             log_export_success("PDF", save_path, len(self.expenses))
             
             messagebox.showinfo(
-                "Export Successful",
+                config.Messages.TITLE_EXPORT_SUCCESS,
                 f"Expenses exported to PDF successfully!\n\n"
                 f"File: {os.path.basename(save_path)}\n"
                 f"Location: {os.path.dirname(save_path)}\n"
@@ -375,12 +444,16 @@ class DataExporterV2:
                 f"Total Amount: ${total_amount:.2f}"
             )
             
+            # Update status bar if callback provided
+            if self.status_callback:
+                self.status_callback(f"Exported to PDF: {os.path.basename(save_path)}", config.StatusBar.SUCCESS_ICON)
+            
             return True
             
         except Exception as e:
             log_export_error("PDF", e, "general_error")
             messagebox.showerror(
-                "Export Error",
+                config.Messages.TITLE_EXPORT_ERROR,
                 f"Failed to export to PDF:\n{str(e)}\n\n"
                 "Check logs/error_log.txt for details."
             )
@@ -423,7 +496,7 @@ class DataExporterV2:
             
             # Load data from each month
             for folder in data_folders:
-                expenses_file = os.path.join(folder, "expenses.json")
+                expenses_file = os.path.join(folder, config.Files.EXPENSES_FILENAME)
                 
                 if os.path.exists(expenses_file):
                     try:
@@ -466,18 +539,10 @@ class DataExporterV2:
             
             # Generate filename: LiteFinPad_Backup_2025-10-19_002600.json
             timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-            filename = f"LiteFinPad_Backup_{timestamp}.json"
+            filename = config.Files.get_backup_filename(timestamp)
             
-            # Ask user where to save
-            save_path = filedialog.asksaveasfilename(
-                defaultextension=".json",
-                filetypes=[("JSON Backup", "*.json"), ("All files", "*.*")],
-                initialfile=filename,
-                title="Save Backup File"
-            )
-            
-            if not save_path:
-                return False  # User cancelled
+            # Use the saved export location
+            save_path = os.path.join(self.export_location, filename)
             
             # Add security signature and data integrity checksum
             backup_data["app_signature"] = "LiteFinPad-Official"
@@ -509,7 +574,7 @@ class DataExporterV2:
             # Summary message
             month_summary = ", ".join(backup_data["months"].keys())
             messagebox.showinfo(
-                "Backup Successful",
+                config.Messages.TITLE_SUCCESS,
                 f"Expense data backed up successfully!\n\n"
                 f"File: {os.path.basename(save_path)}\n"
                 f"Location: {os.path.dirname(save_path)}\n\n"
@@ -520,13 +585,17 @@ class DataExporterV2:
                 f"Months: {month_summary}"
             )
             
+            # Update status bar if callback provided
+            if self.status_callback:
+                self.status_callback(f"JSON backup created: {backup_data['total_months']} months backed up", config.StatusBar.SUCCESS_ICON)
+            
             return True
             
         except Exception as e:
             log_export_error("JSON Backup", e, "export_process")
             print(f"Error creating backup: {e}")
             messagebox.showerror(
-                "Backup Error",
+                config.Messages.TITLE_ERROR,
                 f"Failed to create backup file.\n\n"
                 f"Error: {str(e)}\n\n"
                 f"Check logs/error_log.txt for details."
@@ -534,9 +603,9 @@ class DataExporterV2:
             return False
     
     def show_export_dialog(self):
-        """Show dialog for selecting export format"""
+        """Show enhanced dialog for selecting export format with default save location"""
         import tkinter as tk
-        from tkinter import ttk
+        from tkinter import ttk, filedialog
         
         # Get main window reference
         main_window = tk._default_root
@@ -549,54 +618,59 @@ class DataExporterV2:
             config.Dialog.EXPORT_HEIGHT
         )
         
-        # Create main content frame
-        main_frame = DialogHelper.create_content_frame(dialog, padding="20")
+        # Create main content frame with reduced padding
+        main_frame = DialogHelper.create_content_frame(dialog, padding="15")
         
         # Title
         title_label = ttk.Label(
             main_frame,
             text="Export Expense Data",
-            font=('Segoe UI', 18, 'bold')
+            font=('Segoe UI', 15, 'bold')
         )
-        title_label.pack(pady=(0, 12))
+        title_label.pack(pady=(0, 5))
         
-        # Subtitle
-        subtitle_label = ttk.Label(
-            main_frame,
-            text=f"Month: {self.month_name} | Total Expenses: {len(self.expenses)}",
-            font=('Segoe UI', 11),
-            foreground='#1a1a1a'  # Dark black instead of grey
-        )
-        subtitle_label.pack(pady=(0, 25))
+        # Subtitle with underlined labels and vertical separator
+        subtitle_frame = ttk.Frame(main_frame)
+        subtitle_frame.pack(pady=(0, 8))
+        
+        month_label = ttk.Label(subtitle_frame, text="Month:", font=('Segoe UI', 10, 'underline'), foreground='#1a1a1a')
+        month_label.pack(side=tk.LEFT)
+        
+        month_value = ttk.Label(subtitle_frame, text=f" {self.month_name}", font=('Segoe UI', 10), foreground='#1a1a1a')
+        month_value.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Vertical separator
+        vsep = ttk.Separator(subtitle_frame, orient='vertical')
+        vsep.pack(side=tk.LEFT, fill=tk.Y, padx=10)
+        
+        expenses_label = ttk.Label(subtitle_frame, text="Total Expenses:", font=('Segoe UI', 10, 'underline'), foreground='#1a1a1a')
+        expenses_label.pack(side=tk.LEFT)
+        
+        expenses_value = ttk.Label(subtitle_frame, text=f" {len(self.expenses)}", font=('Segoe UI', 10), foreground='#1a1a1a')
+        expenses_value.pack(side=tk.LEFT)
+        
+        # Separator line
+        sep1 = ttk.Separator(main_frame, orient='horizontal')
+        sep1.pack(fill=tk.X, pady=(0, 10))
         
         # Export options frame
         options_frame = ttk.Frame(main_frame)
         options_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Configure button styles
+        # Configure button style with padding for height
         style = ttk.Style()
-        style.configure('Large.TButton', font=('Segoe UI', 14, 'bold'), padding=(20, 10))
-        
-        # NOTE: Each export button chains the export method with dialog.destroy().
-        # This means the dialog closes even if the user cancels the file picker,
-        # which is acceptable behavior for a quick workflow.
+        style.configure('Export.TButton', padding=(10, 6))
         
         # Excel button
         excel_btn = ttk.Button(
             options_frame,
             text="📊 Export to Excel",
             command=lambda: [self.export_to_excel(), dialog.destroy()],
-            width=45,
-            style='Large.TButton'
+            width=22,
+            style='Export.TButton'
         )
-        excel_btn.pack(pady=15)
-        
-        excel_desc = ttk.Label(
-            options_frame,
-            text="Simple table format with optional analytics",
-            font=('Segoe UI', 9),
-            foreground='#666666'  # Lighter grey for descriptions
-        )
+        excel_btn.pack(pady=5)
+        excel_desc = ttk.Label(options_frame, text="Simple table format with optional analytics", font=('Segoe UI', 9), foreground='#666666')
         excel_desc.pack(pady=(0, 5))
         
         # PDF button
@@ -604,46 +678,57 @@ class DataExporterV2:
             options_frame,
             text="📄 Export to PDF",
             command=lambda: [self.export_to_pdf(), dialog.destroy()],
-            width=45,
-            style='Large.TButton'
+            width=22,
+            style='Export.TButton'
         )
-        pdf_btn.pack(pady=15)
-        
-        pdf_desc = ttk.Label(
-            options_frame,
-            text="Formatted 'pretty' version for viewing/printing",
-            font=('Segoe UI', 9),
-            foreground='#666666'  # Lighter grey for descriptions
-        )
+        pdf_btn.pack(pady=5)
+        pdf_desc = ttk.Label(options_frame, text="Formatted 'pretty' version for viewing/printing", font=('Segoe UI', 9), foreground='#666666')
         pdf_desc.pack(pady=(0, 5))
         
-        # JSON Backup button
+        # JSON button
         backup_btn = ttk.Button(
             options_frame,
             text="💾 Backup (JSON)",
             command=lambda: [self.export_to_json_backup(), dialog.destroy()],
-            width=45,
-            style='Large.TButton'
+            width=22,
+            style='Export.TButton'
         )
-        backup_btn.pack(pady=15)
+        backup_btn.pack(pady=5)
+        backup_desc = ttk.Label(options_frame, text="Complete backup of all months for data migration/restore", font=('Segoe UI', 9), foreground='#666666')
+        backup_desc.pack(pady=(0, 3))
         
-        backup_desc = ttk.Label(
-            options_frame,
-            text="Complete backup of all months for data migration/restore",
-            font=('Segoe UI', 9),
-            foreground='#666666'  # Lighter grey for descriptions
-        )
-        backup_desc.pack(pady=(0, 5))
+        # Separator line
+        sep2 = ttk.Separator(main_frame, orient='horizontal')
+        sep2.pack(fill=tk.X, pady=(0, 5))
         
-        # Cancel button
-        cancel_btn = ttk.Button(
-            options_frame,
-            text="Cancel",
-            command=dialog.destroy,
-            width=30,
-            style='Large.TButton'
-        )
-        cancel_btn.pack(pady=20)
+        # === DEFAULT SAVE LOCATION AT BOTTOM ===
+        location_frame = ttk.LabelFrame(main_frame, text="Default Save Location", padding=8)
+        location_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        # Variable to store and display location
+        location_var = tk.StringVar(value=self.export_location)
+        display_var = tk.StringVar()
+        
+        def update_display():
+            display_var.set(self._get_shortened_path(location_var.get()))
+        
+        update_display()
+        
+        # Location field (reduced width)
+        location_entry = ttk.Entry(location_frame, textvariable=display_var, state='readonly', font=('Segoe UI', 9), width=26)
+        location_entry.pack(fill=tk.X, pady=(0, 6))
+        
+        # Change button below (aligned to left)
+        def change_location():
+            new_loc = filedialog.askdirectory(title="Select Save Location", initialdir=location_var.get())
+            if new_loc:
+                location_var.set(new_loc)
+                self.export_location = new_loc
+                self._save_export_location(new_loc)
+                update_display()
+        
+        change_btn = ttk.Button(location_frame, text="Change...", command=change_location, width=15)
+        change_btn.pack(anchor='w')
         
         # Position dialog to the right of main window with intelligent fallbacks
         DialogHelper.position_right_of_parent(
@@ -661,13 +746,14 @@ class DataExporterV2:
         DialogHelper.show_dialog(dialog)
 
 
-def export_expenses(expenses: List[Dict], current_month: str):
+def export_expenses(expenses: List[Dict], current_month: str, status_callback=None):
     """
     Convenience function to show export dialog
     
     Args:
         expenses: List of expense dictionaries
         current_month: Current month string (YYYY-MM format)
+        status_callback: Optional callback function for status updates (message, icon)
     """
-    exporter = DataExporterV2(expenses, current_month)
+    exporter = DataExporterV2(expenses, current_month, status_callback)
     exporter.show_export_dialog()

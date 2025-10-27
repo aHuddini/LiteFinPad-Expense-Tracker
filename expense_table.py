@@ -17,13 +17,7 @@ from typing import List, Dict, Optional, Callable
 from validation import InputValidation, ValidationPresets, ValidationResult
 import config
 from dialog_helpers import DialogHelper
-
-
-def validate_amount_input(new_value):
-    """
-    Validate amount field input in real-time (uses shared validation module)
-    """
-    return InputValidation.validate_amount(new_value)
+from widgets import CollapsibleDateCombobox
 
 
 class ExpenseData:
@@ -59,6 +53,15 @@ class ExpenseTableManager:
         self.on_expense_change = on_expense_change
         self.expenses: List[ExpenseData] = []
         
+        # Sort state tracking
+        self.sort_column = config.TreeView.DEFAULT_SORT_COLUMN  # Default: 'Date'
+        self.sort_order = config.TreeView.DEFAULT_SORT_ORDER    # Default: 'desc'
+        self._load_sort_preferences()
+        
+        # Pagination state tracking
+        self.current_page = 1
+        self.items_per_page = 15
+        
         # Create the table frame
         self.setup_table()
         
@@ -84,10 +87,13 @@ class ExpenseTableManager:
             style="Modern.Treeview"
         )
         
-        # Configure columns
-        self.tree.heading("Date", text="Date", anchor="center")
-        self.tree.heading("Amount", text="Amount", anchor="e")
-        self.tree.heading("Description", text="Description", anchor="w")
+        # Configure columns with click handlers for sorting
+        self.tree.heading("Date", text="Date", anchor="center", command=lambda: self._on_column_click("Date"))
+        self.tree.heading("Amount", text="Amount", anchor="e", command=lambda: self._on_column_click("Amount"))
+        self.tree.heading("Description", text="Description", anchor="w", command=lambda: self._on_column_click("Description"))
+        
+        # Update headers to show current sort indicator
+        self._update_column_headers()
         
         # Set column widths and properties (wider date column for "(Future)" text)
         self.tree.column("Date", width=180, minwidth=160, anchor="center")
@@ -133,6 +139,169 @@ class ExpenseTableManager:
         self.status_label = ttk.Label(self.status_frame, text="No expenses", font=config.Fonts.LABEL)
         self.status_label.pack(side=tk.LEFT)
         
+        # Add pagination controls (right side)
+        self.pagination_frame = ttk.Frame(self.status_frame)
+        self.pagination_frame.pack(side=tk.RIGHT)
+        
+        self.first_page_btn = ttk.Button(self.pagination_frame, text="◄◄", width=3, command=self.first_page)
+        self.first_page_btn.pack(side=tk.LEFT, padx=(0, 2))
+        
+        self.prev_page_btn = ttk.Button(self.pagination_frame, text="◄", width=3, command=self.prev_page)
+        self.prev_page_btn.pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.page_label = ttk.Label(self.pagination_frame, text="1/1", font=config.Fonts.LABEL)
+        self.page_label.pack(side=tk.LEFT, padx=(0, 5))
+        
+        self.next_page_btn = ttk.Button(self.pagination_frame, text="►", width=3, command=self.next_page)
+        self.next_page_btn.pack(side=tk.LEFT, padx=(0, 2))
+        
+        self.last_page_btn = ttk.Button(self.pagination_frame, text="►►", width=3, command=self.last_page)
+        self.last_page_btn.pack(side=tk.LEFT)
+    
+    def _load_sort_preferences(self):
+        """Load sort preferences from settings.ini"""
+        try:
+            import configparser
+            settings = configparser.ConfigParser()
+            settings_path = os.path.join(os.path.dirname(__file__), 'settings.ini')
+            
+            if os.path.exists(settings_path):
+                settings.read(settings_path)
+                if 'Table' in settings:
+                    self.sort_column = settings.get('Table', 'sort_column', fallback=config.TreeView.DEFAULT_SORT_COLUMN)
+                    self.sort_order = settings.get('Table', 'sort_order', fallback=config.TreeView.DEFAULT_SORT_ORDER)
+        except Exception:
+            # If loading fails, use defaults (already set in __init__)
+            pass
+    
+    def _save_sort_preferences(self):
+        """Save sort preferences to settings.ini"""
+        try:
+            import configparser
+            settings = configparser.ConfigParser()
+            settings_path = os.path.join(os.path.dirname(__file__), 'settings.ini')
+            
+            # Read existing settings
+            if os.path.exists(settings_path):
+                settings.read(settings_path)
+            
+            # Update Table section
+            if 'Table' not in settings:
+                settings.add_section('Table')
+            settings.set('Table', 'sort_column', self.sort_column)
+            settings.set('Table', 'sort_order', self.sort_order)
+            
+            # Write back to file
+            with open(settings_path, 'w') as f:
+                settings.write(f)
+        except Exception:
+            # Silently fail if settings can't be saved
+            pass
+    
+    def _on_column_click(self, column: str):
+        """Handle column header click for sorting"""
+        # Toggle sort order if clicking the same column, otherwise reset to descending
+        if self.sort_column == column:
+            self.sort_order = 'asc' if self.sort_order == 'desc' else 'desc'
+        else:
+            self.sort_column = column
+            self.sort_order = 'desc'  # Default to descending for new column
+        
+        # Save preferences
+        self._save_sort_preferences()
+        
+        # Update UI
+        self._update_column_headers()
+        self.refresh_display()
+    
+    def _update_column_headers(self):
+        """Update column headers to show sort indicators"""
+        for col in ["Date", "Amount", "Description"]:
+            if col == self.sort_column:
+                # Add sort indicator to active column
+                icon = config.TreeView.SORT_DESCENDING_ICON if self.sort_order == 'desc' else config.TreeView.SORT_ASCENDING_ICON
+                header_text = f"{col} {icon}"
+            else:
+                header_text = col
+            
+            # Preserve anchor alignment when updating text
+            if col == "Date":
+                self.tree.heading(col, text=header_text, anchor="center")
+            elif col == "Amount":
+                self.tree.heading(col, text=header_text, anchor="e")
+            else:  # Description
+                self.tree.heading(col, text=header_text, anchor="w")
+    
+    def _sort_expenses(self, expenses: List[ExpenseData]) -> List[ExpenseData]:
+        """Sort expenses based on current sort column and order"""
+        reverse = (self.sort_order == 'desc')
+        
+        if self.sort_column == "Date":
+            # Sort by date (datetime object)
+            return sorted(expenses, key=lambda x: datetime.strptime(x.date, "%Y-%m-%d"), reverse=reverse)
+        elif self.sort_column == "Amount":
+            # Sort by amount (float)
+            return sorted(expenses, key=lambda x: x.amount, reverse=reverse)
+        elif self.sort_column == "Description":
+            # Sort by description (case-insensitive alphabetical)
+            return sorted(expenses, key=lambda x: x.description.lower(), reverse=reverse)
+        else:
+            # Fallback to date descending
+            return sorted(expenses, key=lambda x: datetime.strptime(x.date, "%Y-%m-%d"), reverse=True)
+    
+    def _update_pagination_controls(self, total_pages: int):
+        """Update pagination control visibility and state"""
+        # Update page label
+        self.page_label.config(text=f"{self.current_page}/{total_pages}")
+        
+        # Enable/disable buttons based on current page
+        if total_pages <= 1:
+            # Hide pagination when only 1 page
+            self.pagination_frame.pack_forget()
+        else:
+            # Show pagination
+            self.pagination_frame.pack(side=tk.RIGHT)
+            
+            # First page and previous buttons
+            if self.current_page <= 1:
+                self.first_page_btn.config(state=tk.DISABLED)
+                self.prev_page_btn.config(state=tk.DISABLED)
+            else:
+                self.first_page_btn.config(state=tk.NORMAL)
+                self.prev_page_btn.config(state=tk.NORMAL)
+            
+            # Last page and next buttons
+            if self.current_page >= total_pages:
+                self.next_page_btn.config(state=tk.DISABLED)
+                self.last_page_btn.config(state=tk.DISABLED)
+            else:
+                self.next_page_btn.config(state=tk.NORMAL)
+                self.last_page_btn.config(state=tk.NORMAL)
+    
+    def first_page(self):
+        """Go to first page"""
+        self.current_page = 1
+        self.refresh_display()
+    
+    def prev_page(self):
+        """Go to previous page"""
+        if self.current_page > 1:
+            self.current_page -= 1
+            self.refresh_display()
+    
+    def next_page(self):
+        """Go to next page"""
+        total_pages = max(1, (len(self.expenses) + self.items_per_page - 1) // self.items_per_page)
+        if self.current_page < total_pages:
+            self.current_page += 1
+            self.refresh_display()
+    
+    def last_page(self):
+        """Go to last page"""
+        total_pages = max(1, (len(self.expenses) + self.items_per_page - 1) // self.items_per_page)
+        self.current_page = total_pages
+        self.refresh_display()
+        
     def load_expenses(self, expenses_data: List[Dict]):
         """Load expenses from data"""
         self.expenses = [ExpenseData.from_dict(exp) for exp in expenses_data]
@@ -175,13 +344,29 @@ class ExpenseTableManager:
         for item in self.tree.get_children():
             self.tree.delete(item)
             
-        # Add expenses (show last 15 for better performance)
+        # Add expenses with pagination
         if self.expenses:
-            # Sort by date descending (most recent first)
-            recent_expenses = sorted(self.expenses, key=lambda x: x.date, reverse=True)[:15]
+            # Apply user's sort preference
+            sorted_expenses = self._sort_expenses(self.expenses)
+            
+            # Calculate pagination
+            total_expenses = len(sorted_expenses)
+            total_pages = max(1, (total_expenses + self.items_per_page - 1) // self.items_per_page)
+            
+            # Ensure current page is valid
+            if self.current_page > total_pages:
+                self.current_page = total_pages
+            if self.current_page < 1:
+                self.current_page = 1
+            
+            # Get expenses for current page
+            start_idx = (self.current_page - 1) * self.items_per_page
+            end_idx = start_idx + self.items_per_page
+            page_expenses = sorted_expenses[start_idx:end_idx]
+            
             today = datetime.now().date()
             
-            for expense in recent_expenses:
+            for expense in page_expenses:
                 # Format date for display
                 try:
                     date_obj = datetime.strptime(expense.date, "%Y-%m-%d")
@@ -220,14 +405,20 @@ class ExpenseTableManager:
                 self.status_label.config(text=f"{count} expenses ({future_count} future)")
             else:
                 self.status_label.config(text=f"{count} expenses")
+            
+            # Update pagination controls
+            self._update_pagination_controls(total_pages)
         else:
             # Show placeholder
             self.tree.insert("", "end", values=(
                 "No expenses",
                 "$0.00",
-                "Add your first expense above"
+                "Add your first expense!"
             ))
             self.status_label.config(text="No expenses")
+            
+            # Hide pagination when no expenses
+            self._update_pagination_controls(1)
             
     def show_context_menu(self, event):
         """Show context menu for expense management"""
@@ -270,7 +461,7 @@ class ExpenseTableManager:
         """Edit the selected expense"""
         selection = self.tree.selection()
         if not selection:
-            messagebox.showwarning("No Selection", "Please select an expense to edit.")
+            messagebox.showwarning(config.Messages.TITLE_NO_SELECTION, config.Messages.NO_SELECTION_EDIT)
             return
             
         # Get the selected item
@@ -283,7 +474,7 @@ class ExpenseTableManager:
         # Find the expense index
         expense_index = self.find_expense_index(values)
         if expense_index is None:
-            messagebox.showerror("Error", "Could not find expense to edit.")
+            messagebox.showerror(config.Messages.TITLE_ERROR, "Could not find expense to edit.")
             return
             
         # Open edit dialog
@@ -298,7 +489,7 @@ class ExpenseTableManager:
         """Delete the selected expense"""
         selection = self.tree.selection()
         if not selection:
-            messagebox.showwarning("No Selection", "Please select an expense to delete.")
+            messagebox.showwarning(config.Messages.TITLE_NO_SELECTION, config.Messages.NO_SELECTION_DELETE)
             return
             
         # Get the selected item
@@ -311,13 +502,13 @@ class ExpenseTableManager:
         # Find the expense index
         expense_index = self.find_expense_index(values)
         if expense_index is None:
-            messagebox.showerror("Error", "Could not find expense to delete.")
+            messagebox.showerror(config.Messages.TITLE_ERROR, "Could not find expense to delete.")
             return
             
         # Confirm deletion
         expense = self.expenses[expense_index]
         result = messagebox.askyesno(
-            "Confirm Delete", 
+            config.Messages.TITLE_DELETE_CONFIRM, 
             f"Are you sure you want to delete this expense?\n\n{expense}"
         )
         if result:
@@ -507,34 +698,6 @@ class ExpenseAddDialog:
         """Clear the amount field"""
         self.amount_var.set('')
     
-    def generate_date_options(self):
-        """Generate date options for the current month (including future dates)"""
-        today = datetime.now()
-        current_day = today.day
-        current_month = today.strftime("%B")  # e.g., "October"
-        
-        # Get the last day of current month
-        if today.month == 12:
-            last_day = 31
-        else:
-            from calendar import monthrange
-            last_day = monthrange(today.year, today.month)[1]
-        
-        options = []
-        for day in range(1, last_day + 1):
-            # Format: "1 - October 1", "2 - October 2", etc. (no suffix)
-            # Add (Today) or (Future) indicator
-            if day == current_day:
-                display = f"{day} - {current_month} {day} (Today)"
-            elif day > current_day:
-                display = f"{day} - {current_month} {day} (Future)"
-            else:
-                display = f"{day} - {current_month} {day}"
-            
-            options.append(display)
-        
-        return options
-        
     def setup_dialog(self):
         """Setup dialog components with clean, simple design"""
         # Configure style
@@ -555,7 +718,7 @@ class ExpenseAddDialog:
         self.amount_var = tk.StringVar()
         
         # Register validation function
-        vcmd = (self.dialog.register(validate_amount_input), '%P')
+        vcmd = (self.dialog.register(InputValidation.validate_amount), '%P')
         
         self.amount_entry = ttk.Entry(main_frame, textvariable=self.amount_var,
                                      font=config.Fonts.ENTRY,
@@ -572,31 +735,11 @@ class ExpenseAddDialog:
                                           font=config.Fonts.ENTRY)
         self.description_entry.grid(row=4, column=0, sticky=(tk.W, tk.E), pady=(0, 12))
         
-        # Date field with smart dropdown
+        # Date field with collapsible month combobox
         ttk.Label(main_frame, text="Date:", font=config.Fonts.LABEL).grid(row=5, column=0, sticky=tk.W, pady=(0, 5))
         
-        # Generate date options for current month
-        self.date_var = tk.StringVar()
-        date_options = self.generate_date_options()
-        
-        # Set default to today's day (index is day - 1)
-        current_day = datetime.now().day
-        self.date_var.set(date_options[current_day - 1])  # e.g., if today is 12th, use index 11
-        
-        # Configure custom style for date combobox with darker blue highlight and white text
-        style = ttk.Style()
-        style.map('DateCombo.TCombobox',
-                  fieldbackground=[('readonly', config.Colors.DATE_BG)],
-                  foreground=[('readonly', config.Colors.DATE_FG)],
-                  selectbackground=[('readonly', config.Colors.DATE_BG)],
-                  selectforeground=[('readonly', config.Colors.DATE_FG)])
-        style.configure('DateCombo.TCombobox',
-                       foreground=config.Colors.DATE_FG,
-                       fieldbackground=config.Colors.DATE_BG)
-        
-        self.date_combo = ttk.Combobox(main_frame, textvariable=self.date_var, 
-                                      values=date_options, state="readonly", 
-                                      font=config.Fonts.LABEL, style='DateCombo.TCombobox')
+        # Create collapsible date combobox (all 12 months with accordion behavior)
+        self.date_combo = CollapsibleDateCombobox(main_frame)
         self.date_combo.grid(row=6, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
         
         # Buttons frame
@@ -617,26 +760,12 @@ class ExpenseAddDialog:
     def add_expense(self):
         """Add the expense with validation"""
         try:
-            # Parse date from selection (e.g., "12 - October 12th" -> 2025-10-12)
-            date_selection = self.date_var.get().strip()
-            try:
-                # Extract the day number from the beginning of the selection
-                # Format: "12 - October 12th" -> day = 12
-                day_num = int(date_selection.split(' - ')[0])
-                
-                # Get current month and year
-                current_date = datetime.now()
-                current_year = current_date.year
-                current_month = current_date.month
-                
-                # Create date string in YYYY-MM-DD format
-                date_str = f"{current_year}-{current_month:02d}-{day_num:02d}"
-                
-                # Validate the date format
-                datetime.strptime(date_str, "%Y-%m-%d")
-            except (ValueError, IndexError):
-                messagebox.showerror("Validation Error", "Please select a valid date")
-                self.date_combo.focus()
+            # Get date from widget (returns YYYY-MM-DD format)
+            date_str = self.date_combo.get_selected_date()
+            
+            if not date_str:
+                messagebox.showerror(config.Messages.TITLE_VALIDATION, config.Messages.DATE_REQUIRED)
+                self.date_combo.combo.focus()
                 return
             
             # Validate all fields using preset validator
@@ -648,7 +777,7 @@ class ExpenseAddDialog:
             
             # If validation failed, show error and focus appropriate field
             if not result:
-                messagebox.showerror("Validation Error", result.error_message)
+                messagebox.showerror(config.Messages.TITLE_VALIDATION, result.error_message)
                 
                 # Auto-focus the field that failed validation
                 if result.error_field == "amount":
@@ -656,7 +785,7 @@ class ExpenseAddDialog:
                 elif result.error_field == "description":
                     self.description_entry.focus()
                 elif result.error_field == "date":
-                    self.date_combo.focus()
+                    self.date_combo.combo.focus()
                 return
             
             # Get sanitized values from validation result
@@ -674,7 +803,7 @@ class ExpenseAddDialog:
             self.dialog.destroy()
             
         except Exception as e:
-            messagebox.showerror("Error", f"Unexpected error: {e}")
+            messagebox.showerror(config.Messages.TITLE_ERROR, f"Unexpected error: {e}")
             self.amount_entry.focus()
 
 
@@ -722,36 +851,8 @@ class ExpenseEditDialog:
         # Also bind to the entry fields
         self.amount_entry.bind('<Return>', handle_enter)
         self.description_entry.bind('<Return>', handle_enter)
-        self.date_combo.bind('<Return>', handle_enter)
+        self.date_combo.combo.bind('<Return>', handle_enter)
     
-    def generate_date_options(self):
-        """Generate date options for the expense's month"""
-        try:
-            expense_date = datetime.strptime(self.expense.date, "%Y-%m-%d")
-        except ValueError:
-            # Fallback to current date if parsing fails
-            expense_date = datetime.now()
-        
-        expense_day = expense_date.day
-        expense_month = expense_date.strftime("%B")  # e.g., "October"
-        
-        # Get the last day of the expense's month
-        from calendar import monthrange
-        last_day = monthrange(expense_date.year, expense_date.month)[1]
-        
-        options = []
-        for day in range(1, last_day + 1):
-            # Format: "1 - October 1", "2 - October 2", etc.
-            # Add indicator if it's the current day of the expense
-            if day == expense_day:
-                display = f"{day} - {expense_month} {day} (Current)"
-            else:
-                display = f"{day} - {expense_month} {day}"
-            
-            options.append(display)
-        
-        return options
-        
     def setup_dialog(self):
         """Setup dialog components"""
         # Configure style
@@ -786,37 +887,15 @@ class ExpenseEditDialog:
                                           width=25, font=config.Fonts.ENTRY)
         self.description_entry.grid(row=4, column=0, sticky=(tk.W, tk.E), pady=(0, 15))
         
-        # Date field - Day dropdown
+        # Date field with collapsible month combobox
         ttk.Label(main_frame, text="Date:", font=config.Fonts.LABEL).grid(row=5, column=0, sticky=tk.W, pady=(0, 5))
         
-        # Generate date options for the expense's month
-        self.date_var = tk.StringVar()
-        date_options = self.generate_date_options()
+        # Create collapsible date combobox (all 12 months with accordion behavior)
+        self.date_combo = CollapsibleDateCombobox(main_frame)
         
-        # Set to the day from the existing expense
-        try:
-            expense_date = datetime.strptime(self.expense.date, "%Y-%m-%d")
-            day_num = expense_date.day
-            # Find and set the matching option (day number - 1 for zero-based index)
-            self.date_var.set(date_options[day_num - 1])
-        except (ValueError, IndexError):
-            # Fallback to first day if date parsing fails
-            self.date_var.set(date_options[0])
+        # Set to the existing expense's date
+        self.date_combo.set_date(self.expense.date)
         
-        # Configure custom style for date combobox
-        style = ttk.Style()
-        style.map('DateCombo.TCombobox',
-                  fieldbackground=[('readonly', config.Colors.DATE_BG)],
-                  foreground=[('readonly', config.Colors.DATE_FG)],
-                  selectbackground=[('readonly', config.Colors.DATE_BG)],
-                  selectforeground=[('readonly', config.Colors.DATE_FG)])
-        style.configure('DateCombo.TCombobox',
-                       foreground=config.Colors.DATE_FG,
-                       fieldbackground=config.Colors.DATE_BG)
-        
-        self.date_combo = ttk.Combobox(main_frame, textvariable=self.date_var, 
-                                       values=date_options, state="readonly", 
-                                       width=22, font=("Segoe UI", 11), style='DateCombo.TCombobox')
         self.date_combo.grid(row=6, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
         
         # Buttons frame
@@ -836,30 +915,12 @@ class ExpenseEditDialog:
     def update_expense(self):
         """Update the expense with validation"""
         try:
-            # Parse date from day selection
-            date_selection = self.date_var.get().strip()
-            try:
-                # Extract day number from selection (e.g., "12 - October 12 (Current)" -> 12)
-                day_num = int(date_selection.split(' - ')[0])
-                
-                # Get the original expense's year and month to preserve them
-                try:
-                    expense_date = datetime.strptime(self.expense.date, "%Y-%m-%d")
-                    expense_year = expense_date.year
-                    expense_month = expense_date.month
-                except ValueError:
-                    # Fallback to current year/month if parsing fails
-                    expense_year = datetime.now().year
-                    expense_month = datetime.now().month
-                
-                # Create date string in YYYY-MM-DD format
-                date_str = f"{expense_year}-{expense_month:02d}-{day_num:02d}"
-                
-                # Validate the date format
-                datetime.strptime(date_str, "%Y-%m-%d")
-            except (ValueError, IndexError):
-                messagebox.showerror("Validation Error", "Please select a valid date")
-                self.date_combo.focus()
+            # Get date from widget (returns YYYY-MM-DD format)
+            date_str = self.date_combo.get_selected_date()
+            
+            if not date_str:
+                messagebox.showerror(config.Messages.TITLE_VALIDATION, config.Messages.DATE_REQUIRED)
+                self.date_combo.combo.focus()
                 return
             
             # Validate all fields using preset validator
@@ -871,7 +932,7 @@ class ExpenseEditDialog:
             
             # If validation failed, show error and focus appropriate field
             if not result:
-                messagebox.showerror("Validation Error", result.error_message)
+                messagebox.showerror(config.Messages.TITLE_VALIDATION, result.error_message)
                 
                 # Auto-focus the field that failed validation
                 if result.error_field == "amount":
@@ -879,7 +940,7 @@ class ExpenseEditDialog:
                 elif result.error_field == "description":
                     self.description_entry.focus()
                 elif result.error_field == "date":
-                    self.month_combo.focus()
+                    self.date_combo.combo.focus()
                 return
             
             # Get sanitized values from validation result
@@ -897,5 +958,5 @@ class ExpenseEditDialog:
             self.dialog.destroy()
             
         except Exception as e:
-            messagebox.showerror("Error", f"Unexpected error: {e}")
+            messagebox.showerror(config.Messages.TITLE_ERROR, f"Unexpected error: {e}")
             self.amount_entry.focus()

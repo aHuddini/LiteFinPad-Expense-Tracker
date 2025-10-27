@@ -78,13 +78,23 @@ $RECYCLE.BIN/
 # ====================
 archive_old_docs/
 archive_old_specs/
+archive_backups/
 
 # ====================
 # Personal Learning & Development Notes
 # ====================
 _personal/
+docs/internal/
 AI_MEMORY.md
+
+# ====================
+# Branding & Design Assets (Working Files)
+# ====================
+_branding/
 
 # Note: BEGINNER_THOUGHTS.md is intentionally PUBLIC
 # It's kept in the main folder to share the development journey
 
+LiteFinPad_v3.5.2-Windows-x64.zip
+create_backup.ps1
+_analysis_changelog_gaps.md

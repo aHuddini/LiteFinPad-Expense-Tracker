@@ -193,28 +193,50 @@ class ExpenseAnalytics:
         return pace_per_day, days_elapsed
     
     @staticmethod
-    def calculate_monthly_trend(prev_month_data_folder):
+    def calculate_monthly_trend(prev_month_data_folder, current_month_total=None, viewed_month_key=None):
         """
-        Get previous month's total and name for comparison.
+        Get previous month's total and name for comparison, with trend indicator.
         
         Args:
-            prev_month_data_folder (str): Folder path for previous month's data
+            prev_month_data_folder (str): Folder path for previous month's data (will be recalculated if viewed_month_key provided)
+            current_month_total (float, optional): Current/viewed month's total for comparison
+            viewed_month_key (str, optional): Month being viewed (YYYY-MM format). If provided, calculates contextual previous month.
             
         Returns:
-            tuple: (prev_total_formatted, prev_month_name)
+            tuple: (prev_total_formatted, prev_month_name, comparison_indicator)
+            
+            comparison_indicator is a dict with:
+                - 'symbol': '▲' (increase) | '▼' (decrease) | '≈' (similar) | None
+                - 'percentage': float (positive number, e.g., 28.5)
+                - 'direction': 'increase' | 'decrease' | 'similar' | None
+                - 'color': hex color code for the indicator
             
         Example:
-            >>> calculate_monthly_trend("data_2025-09")
-            ("$4,523.50", "September 2025")
+            >>> calculate_monthly_trend("data_2025-09", 5176.00)
+            ("$4,523.50", "September 2025", {
+                'symbol': '▲',
+                'percentage': 14.4,
+                'direction': 'increase',
+                'color': '#E67E22'
+            })
         """
-        # Get previous month date and name
-        prev_month_date = datetime.now().replace(day=1) - timedelta(days=1)
+        # Determine which month's previous month to calculate
+        if viewed_month_key:
+            # Archive mode: Calculate previous month relative to viewed month
+            viewed_date = datetime.strptime(viewed_month_key, '%Y-%m')
+            prev_month_date = viewed_date.replace(day=1) - timedelta(days=1)
+        else:
+            # Normal mode: Calculate previous month relative to current month
+            prev_month_date = datetime.now().replace(day=1) - timedelta(days=1)
+        
         prev_month_key = prev_month_date.strftime('%Y-%m')
         prev_month_name = prev_month_date.strftime('%B %Y')  # e.g., "September 2025"
+        prev_data_folder = f"data_{prev_month_key}"
         
         # Check if we have previous month data file
-        prev_expenses_file = os.path.join(prev_month_data_folder, 'expenses.json')
+        prev_expenses_file = os.path.join(prev_data_folder, 'expenses.json')
         
+        prev_total = 0.0
         if os.path.exists(prev_expenses_file):
             try:
                 with open(prev_expenses_file, 'r') as f:
@@ -228,12 +250,43 @@ class ExpenseAnalytics:
                         prev_expenses = []
                     
                     prev_total = sum(e['amount'] for e in prev_expenses)
-                    return f"${prev_total:.2f}", prev_month_name
             except Exception:
-                # If error reading file, return $0.00
-                return "$0.00", prev_month_name
-        else:
-            return "$0.00", prev_month_name
+                # If error reading file, use 0.00
+                prev_total = 0.0
+        
+        # Calculate comparison indicator if current month total provided
+        comparison_indicator = None
+        if current_month_total is not None and prev_total > 0:
+            difference = current_month_total - prev_total
+            percentage = abs((difference / prev_total) * 100)
+            
+            # Determine direction and styling
+            if percentage < 5.0:
+                # Similar (less than 5% change)
+                comparison_indicator = {
+                    'symbol': '≈',
+                    'percentage': percentage,
+                    'direction': 'similar',
+                    'color': '#999999'  # Light gray
+                }
+            elif difference > 0:
+                # Increase (spending more)
+                comparison_indicator = {
+                    'symbol': '▲',
+                    'percentage': percentage,
+                    'direction': 'increase',
+                    'color': '#E67E22'  # Orange (awareness)
+                }
+            else:
+                # Decrease (spending less)
+                comparison_indicator = {
+                    'symbol': '▼',
+                    'percentage': percentage,
+                    'direction': 'decrease',
+                    'color': '#666666'  # Neutral gray
+                }
+        
+        return f"${prev_total:.2f}", prev_month_name, comparison_indicator
     
     @staticmethod
     def calculate_median_expense(expenses, current_date=None):

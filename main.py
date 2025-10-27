@@ -12,7 +12,7 @@ import time
 import ctypes
 from expense_table import ExpenseTableManager, ExpenseAddDialog, ExpenseData
 from gui import LiteFinPadGUI
-from tray_icon import create_simple_tray_icon
+from tray_icon_manager import TrayIconManager
 from error_logger import log_error, log_info, log_warning, log_debug, error_logger, log_data_load
 from export_data import export_expenses
 from import_data import import_expense_backup
@@ -21,6 +21,9 @@ from analytics import ExpenseAnalytics
 from data_manager import ExpenseDataManager
 from validation import InputValidation, ValidationPresets, ValidationResult
 from widgets.number_pad import NumberPadWidget
+from dialog_helpers import DialogHelper
+from window_manager import WindowManager
+from month_viewer import MonthViewer
 import config
 
 # Set DPI awareness for Windows 11 crisp text rendering
@@ -43,7 +46,14 @@ class ExpenseTracker:
         # Initialize error logging
         error_logger.log_application_start()
         
-        self.current_month = datetime.now().strftime("%Y-%m")
+        # Initialize month viewer for navigation and archive mode
+        self.month_viewer = MonthViewer(data_directory=".")
+        
+        # Use month viewer for month tracking
+        self.current_month = self.month_viewer.actual_month
+        self.viewed_month = self.month_viewer.viewed_month
+        self.viewing_mode = self.month_viewer.viewing_mode
+        
         self.data_folder = f"data_{self.current_month}"
         self.expenses_file = os.path.join(self.data_folder, "expenses.json")
         self.calculations_file = os.path.join(self.data_folder, "calculations.json")
@@ -52,7 +62,7 @@ class ExpenseTracker:
         self.current_page = "main"  # Track current page
         self.open_dialogs = []  # Track open dialogs for proper cleanup
         self.gui_queue = queue.Queue()  # Thread-safe queue for GUI operations from background threads
-        self.is_hidden = True  # Track if window is intentionally hidden (starts hidden)
+        self._shutting_down = False  # Guard flag to prevent duplicate shutdown calls
         self.load_data()
         
         # Create main window
@@ -68,24 +78,30 @@ class ExpenseTracker:
         # Configure window close behavior - X button should quit the app
         self.root.protocol("WM_DELETE_WINDOW", self.quit_app)
         
-        # Add window state change handler to distinguish between minimize and close
-        self.root.bind("<Unmap>", self.on_window_unmap)
-        self.root.bind("<Map>", self.on_window_map)
-        
-        # Add additional close detection
-        self.root.bind("<Destroy>", self.on_window_destroy)
-        
         # Configure DPI scaling for crisp text rendering
         self.configure_dpi_scaling()
-        
-        # Initialize GUI using separated GUI class
-        self.gui = LiteFinPadGUI(self.root, self)
         
         # Create window animator
         self.animator = create_window_animator(self.root)
         
-        # Create and start tray icon
-        self.create_tray_icon()
+        # Create window manager (gui will be set after GUI initialization)
+        self.window_manager = WindowManager(
+            root=self.root,
+            animator=self.animator,
+            gui=None,  # Will be set after GUI is created
+            close_dialogs_callback=self.close_all_dialogs,
+            quit_callback=self.quit_app
+        )
+        
+        # Initialize GUI using separated GUI class
+        self.gui = LiteFinPadGUI(self.root, self)
+        
+        # Set GUI reference in window manager now that GUI is created
+        self.window_manager.gui = self.gui
+        
+        # Create tray icon manager and start tray icon
+        self.tray_icon_manager = TrayIconManager(self)
+        self.tray_icon_manager.create()
         
         # Hide window initially - use tray icon to access
         self.root.withdraw()
@@ -117,252 +133,119 @@ class ExpenseTracker:
         try:
             # Check if we're running as a PyInstaller bundle
             if hasattr(sys, '_MEIPASS'):
-                # Running as PyInstaller executable
+                # PyInstaller mode: try primary location first
                 icon_path = os.path.join(sys._MEIPASS, 'icon.ico')
-                print(f"PyInstaller mode: Looking for icon at {icon_path}")
                 if os.path.exists(icon_path):
-                    print(f"Found icon in PyInstaller bundle: {icon_path}")
                     return icon_path
-                else:
-                    print("Icon not found in PyInstaller bundle, trying alternative locations")
-                    # Try alternative locations
-                    alt_paths = [
-                        os.path.join(sys._MEIPASS, 'dist', 'icon.ico'),
-                        os.path.join(os.path.dirname(sys.executable), 'icon.ico'),
-                        os.path.join(os.path.dirname(sys.executable), 'dist', 'icon.ico')
-                    ]
-                    for alt_path in alt_paths:
-                        if os.path.exists(alt_path):
-                            print(f"Found icon at alternative location: {alt_path}")
-                            return alt_path
-                    print("Icon not found in any location, creating default")
-                    return self.create_default_icon()
+                
+                # Try alternative locations
+                alt_paths = [
+                    os.path.join(sys._MEIPASS, 'dist', 'icon.ico'),
+                    os.path.join(os.path.dirname(sys.executable), 'icon.ico'),
+                    os.path.join(os.path.dirname(sys.executable), 'dist', 'icon.ico')
+                ]
+                for alt_path in alt_paths:
+                    if os.path.exists(alt_path):
+                        return alt_path
+                
+                # Icon not found - log warning and return None
+                log_warning("[ICON] Icon not found in PyInstaller bundle")
+                return None
             else:
-                # Running as Python script
+                # Development mode: simple check
                 icon_path = "icon.ico"
-                print(f"Development mode: Looking for icon at {icon_path}")
                 if os.path.exists(icon_path):
-                    print(f"Found icon in development: {icon_path}")
                     return icon_path
-                else:
-                    print("Icon not found in development, creating default")
-                    return self.create_default_icon()
+                
+                log_warning("[ICON] Icon not found in development mode")
+                return None
+                
         except Exception as e:
-            print(f"Error resolving icon path: {e}")
-            return self.create_default_icon()
+            log_error(f"[ICON] Error resolving icon path: {e}", e)
+            return None
     
     def create_default_icon(self):
         """Fallback - icon.ico should always be bundled by PyInstaller"""
-        try:
-            print("Warning: icon.ico not found - using tkinter default")
-            # PIL removed for size optimization
-            # icon.ico is bundled by PyInstaller via --icon and --add-data flags
-            # If we reach this point, something went wrong with the build
-            return None
-            
-        except Exception as e:
-            print(f"Error in create_default_icon: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
-        
-    def create_tray_icon(self):
-        """Create and start the system tray icon"""
-        try:
-            log_info("Creating tray icon...")
-            
-            def toggle_app():
-                """Toggle app visibility - simple toggle based on hidden state"""
-                try:
-                    if self.is_hidden:
-                        self.show_window()
-                    else:
-                        self.hide_window()
-                except Exception as e:
-                    log_error("Error in toggle_app", e)
-            
-            # Generate tooltip with monthly total
-            tooltip = self.get_tray_tooltip()
-            
-            # Create and start tray icon using the new system
-            self.tray_icon = create_simple_tray_icon(
-                toggle_callback=toggle_app,
-                quick_add_callback=self.show_quick_add_dialog,
-                quit_callback=self.quit_app,
-                tooltip=tooltip
-            )
-            
-            # Start the tray icon
-            if self.tray_icon.start():
-                log_info("Tray icon created and started successfully")
-            else:
-                log_error("Failed to start tray icon")
-            
-        except Exception as e:
-            log_error("Error creating tray icon", e)
-    
-    def get_tray_tooltip(self):
-        """Generate tooltip text for tray icon with monthly total"""
-        try:
-            # Get month name and year
-            month_name = datetime.strptime(self.current_month, "%Y-%m").strftime("%B %Y")
-            
-            # Calculate monthly total
-            monthly_total = sum(expense['amount'] for expense in self.expenses)
-            
-            # Format tooltip with line break: "LiteFinPad\nOctober 2025: $5,176.00"
-            tooltip = f"LiteFinPad\n{month_name}: ${monthly_total:,.2f}"
-            return tooltip
-        except Exception as e:
-            log_error(f"Error generating tray tooltip: {e}")
-            return "LiteFinPad\nExpense Tracker"
-    
-    def update_tray_tooltip(self):
-        """Update the tray icon tooltip with current monthly total"""
-        try:
-            if hasattr(self, 'tray_icon') and self.tray_icon:
-                tooltip = self.get_tray_tooltip()
-                self.tray_icon.update_tooltip(tooltip)
-        except Exception as e:
-            log_error(f"Error updating tray tooltip: {e}")
-        
-    def show_window(self):
-        """Show the main window positioned near taskbar with slide animation"""
-        try:
-            log_info(f"[WINDOW] Showing window")
-            log_debug(f"[WINDOW] Hidden state: {self.is_hidden}")
-            
-            # Refresh display to update date-based filtering (e.g., future expenses becoming current)
-            self.gui.update_recent_expenses()
-            self.gui.update_display()
-            
-            # Get screen dimensions
-            screen_width = self.root.winfo_screenwidth()
-            screen_height = self.root.winfo_screenheight()
-            
-            # Position window near bottom-right corner (near taskbar)
-            window_width = config.Window.WIDTH
-            window_height = config.Window.COMPACT_HEIGHT  # Compact height (850)
-            x = screen_width - window_width - config.Animation.SCREEN_MARGIN
-            y = screen_height - window_height - 450  # Clear space for 3 rows of hidden system tray icons
-            
-            # Use the animator for smooth slide-in
-            self.animator.slide_in(x, y, window_width, window_height)
-            self.is_hidden = False
-            
-            # Bring to front
-            self.root.lift()
-            self.root.focus_force()
-            
-            # Set topmost attribute based on stay_on_top setting
-            if hasattr(self.gui, 'stay_on_top_var') and self.gui.stay_on_top_var.get():
-                # Stay on top is enabled - keep window on top permanently
-                log_debug("[WINDOW] Stay on top enabled")
-                self.root.attributes('-topmost', True)
-            else:
-                # Stay on top is disabled - use temporary topmost to bring to front, then remove
-                log_debug("[WINDOW] Using temporary topmost")
-                self.root.attributes('-topmost', True)
-                self.root.update()  # Force update to apply topmost
-                self.root.attributes('-topmost', False)
-                
-        except Exception as e:
-            log_error(f"[WINDOW] ERROR in show_window: {e}", e)
-            print(f"Error showing window: {e}")
-            # Fallback: just show the window
-            self.root.deiconify()
-    
-    def hide_window(self):
-        """Hide window to system tray with slide animation"""
-        try:
-            log_info(f"[WINDOW] Hiding window")
-            log_debug(f"[WINDOW] Hidden state: {self.is_hidden}, Quick Add open: {getattr(self, '_quick_add_dialog_open', False)}")
-            
-            self.is_hidden = True
-            
-            # Close all open dialogs first to prevent focus issues
-            self.close_all_dialogs()
-            
-            # Get current position
-            current_geometry = self.root.geometry()
-            if 'x' in current_geometry and '+' in current_geometry:
-                # Extract current position
-                parts = current_geometry.split('+')
-                if len(parts) >= 3:
-                    current_x = int(parts[1])
-                    current_y = int(parts[2])
-                    
-                    # Use the animator for smooth slide-out
-                    self.animator.slide_out(current_x, current_y)
-                    return
-            
-            # Fallback: just hide
-            log_debug("[WINDOW] Using fallback withdraw()")
-            self.root.withdraw()
-            
-        except Exception as e:
-            log_error(f"[WINDOW] ERROR in hide_window: {e}", e)
-            print(f"Error in hide animation: {e}")
-            # Fallback: just hide
-            self.root.withdraw()
-    
-    def force_hide_window(self):
-        """Force hide window without animation (for testing)"""
-        # Close all open dialogs first
-        self.close_all_dialogs()
-        self.root.withdraw()
-    
-    def on_window_unmap(self, event):
-        """Handle window unmapping (minimize or close)"""
-        # Don't do anything here - let the protocol handle close, toggle handle minimize
-        
-    def on_window_map(self, event):
-        """Handle window mapping (restore from minimize)"""
-        # Don't do anything here - just for debugging
-        
-    def on_window_destroy(self, event):
-        """Handle window destroy event"""
-        # This should only be called when the window is actually being destroyed
-        # If we get here, it means the window is closing for real
-        if event.widget == self.root:
-            self.quit_app()
-    
+        # PIL removed for size optimization
+        # icon.ico is bundled by PyInstaller via --icon and --add-data flags
+        # If icon is None, tkinter will use default
+        return None
         
     def quit_app(self):
-        """Quit the application"""
+        """
+        Quit the application with proper cleanup.
+        
+        Ensures all resources are cleaned up in the correct order:
+        1. Close any open dialogs
+        2. Stop the tray icon
+        3. Destroy the GUI window
+        """
+        # Guard against duplicate calls (e.g., from WM_DELETE_WINDOW protocol during destroy)
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+        
         try:
-            # Destroy the root window first
+            log_debug("Application shutdown initiated...")
+            
+            # 1. Close any open dialogs first
+            self.close_all_dialogs()
+            
+            # 2. Stop tray icon before destroying window
+            if hasattr(self, 'tray_icon_manager') and self.tray_icon_manager:
+                self.tray_icon_manager.stop()
+            
+            # 3. Destroy the GUI window
             self.root.quit()
             self.root.destroy()
+            
+            log_info("Application shutdown complete")
+            
         except Exception as e:
-            log_error(f"Error destroying window: {e}")
-        
-        try:
-            # Stop tray icon after window is destroyed
-            if hasattr(self, 'tray_icon') and self.tray_icon:
-                self.tray_icon.stop()
-        except Exception as e:
-            log_error(f"Error stopping tray icon: {e}")
-        
-        # Force exit
-        import sys
-        sys.exit(0)
-        
-    def toggle_stay_on_top(self):
-        """Toggle stay on top functionality"""
-        if hasattr(self.gui, 'stay_on_top_var'):
-            if self.gui.stay_on_top_var.get():
-                self.root.attributes('-topmost', True)
-            else:
-                self.root.attributes('-topmost', False)
+            log_error(f"Error during shutdown: {e}")
+            # Force exit even if cleanup fails
+            import sys
+            sys.exit(1)
                 
-    def load_data(self):
-        """Load expense data from JSON file"""
+    def load_data(self, month_key: str = None):
+        """
+        Load expense data from JSON file
+        
+        Args:
+            month_key: Month to load (YYYY-MM format). If None, uses viewed_month.
+        """
+        if month_key is None:
+            month_key = self.viewed_month
+        
+        # Get paths for the target month
+        data_folder = f"data_{month_key}"
+        expenses_file = os.path.join(data_folder, "expenses.json")
+        
+        # Load expenses
         self.expenses, self.monthly_total = ExpenseDataManager.load_expenses(
-            self.expenses_file,
-            self.data_folder,
-            self.current_month
+            expenses_file,
+            data_folder,
+            month_key
         )
+    
+    def switch_month(self, month_key: str):
+        """
+        Switch to viewing a different month
+        
+        Args:
+            month_key: Month to switch to (YYYY-MM format)
+        """
+        # Update month viewer state
+        self.viewed_month, self.viewing_mode = self.month_viewer.switch_to_month(month_key)
+        
+        # Load data for the new month
+        self.load_data(month_key)
+        
+        # Update GUI to reflect new mode
+        self.gui.archive_mode_manager.refresh_ui()
+        
+        # Log the switch
+        log_info(f"Switched to {month_key} ({self.viewing_mode} mode)")
             
     def save_data(self):
         """Save expense data to JSON file"""
@@ -372,18 +255,118 @@ class ExpenseTracker:
             self.expenses,
             self.monthly_total
         )
+        # Also save calculations metadata
+        self._save_calculations(self.calculations_file, self.current_month, self.monthly_total)
+    
+    def add_expense_to_correct_month(self, expense_dict):
+        """
+        Add expense to the correct month's data folder based on expense date.
+        If the expense belongs to a previous month, it will be saved to that month's folder.
+        
+        Args:
+            expense_dict (dict): Expense dictionary with 'date', 'amount', 'description'
+            
+        Returns:
+            str: Message to display to user about where the expense was saved
+        """
+        from datetime import datetime
+        from tkinter import messagebox
+        
+        # Parse the expense date to determine target month
+        expense_date = datetime.strptime(expense_dict['date'], "%Y-%m-%d")
+        target_month = expense_date.strftime("%Y-%m")  # e.g., "2025-09"
+        
+        # Check if expense belongs to current month, past month, or future month
+        if target_month == self.current_month:
+            # Add to current month (existing behavior)
+            self.expenses.append(expense_dict)
+            self.monthly_total += expense_dict['amount']
+            self.save_data()
+            return None  # No special message needed
+        else:
+            # Expense belongs to a different month - save to that month's folder
+            target_data_folder = f"data_{target_month}"
+            target_expenses_file = os.path.join(target_data_folder, "expenses.json")
+            target_calculations_file = os.path.join(target_data_folder, "calculations.json")
+            
+            # Load the target month's data
+            target_expenses, target_total = ExpenseDataManager.load_expenses(
+                target_expenses_file,
+                target_data_folder,
+                target_month
+            )
+            
+            # Add expense to target month
+            target_expenses.append(expense_dict)
+            target_total += expense_dict['amount']
+            
+            # Save expenses to target month's folder
+            ExpenseDataManager.save_expenses(
+                target_data_folder,
+                target_expenses_file,
+                target_expenses,
+                target_total
+            )
+            
+            # Save calculations metadata for future viewing
+            self._save_calculations(target_calculations_file, target_month, target_total)
+            
+            # Parse month name for user message
+            month_name = expense_date.strftime("%B %Y")  # e.g., "September 2025"
+            
+            # Determine if it's a past or future expense
+            if target_month < self.current_month:
+                # Past expense
+                return f"💡 Past expense saved to {month_name} data folder (${expense_dict['amount']:.2f})"
+            else:
+                # Future expense
+                return f"💡 Future expense saved to {month_name} data folder (${expense_dict['amount']:.2f})"
+    
+    def _save_calculations(self, calculations_file, month, total):
+        """
+        Save calculations metadata for a given month.
+        This enables viewing previous months' data in the future.
+        
+        Args:
+            calculations_file (str): Path to calculations.json file
+            month (str): Month string (YYYY-MM)
+            total (float): Monthly total
+        """
+        from datetime import datetime
+        import json
+        
+        calculations_data = {
+            "current_month": month,
+            "monthly_total": total,
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        try:
+            with open(calculations_file, 'w') as f:
+                json.dump(calculations_data, f, indent=2)
+            log_info(f"Calculations saved for {month}: ${total:.2f}")
+        except Exception as e:
+            log_error(f"Error saving calculations to {calculations_file}", e)
+            print(f"Error saving calculations: {e}")
             
     def add_expense(self):
         """Add a new expense"""
         def on_add_expense(expense_data):
+            from tkinter import messagebox
+            
             # Convert ExpenseData to dict format
             expense_dict = expense_data.to_dict()
-            self.expenses.append(expense_dict)
-            self.monthly_total += expense_dict['amount']
-            self.save_data()
+            
+            # Add expense to correct month folder
+            message = self.add_expense_to_correct_month(expense_dict)
+            
+            # Update display and tray icon
             self.gui.update_display()
-            # Update tray icon tooltip with new total
-            self.update_tray_tooltip()
+            self.tray_icon_manager.update_tooltip()
+            
+            # Show message if expense was saved to a previous month
+            if message:
+                messagebox.showinfo("Cross-Month Save", message)
         
         dialog = ExpenseAddDialog(self.root, on_add_expense)
         self.open_dialogs.append(dialog)  # Track the dialog
@@ -423,31 +406,27 @@ class ExpenseTracker:
             import tkinter as tk
             from tkinter import ttk, messagebox
             
-            # Create dialog
-            dialog = tk.Toplevel(self.root)
-            dialog.title("Quick Add Expense")
-            dialog.resizable(False, False)
+            # Create dialog using DialogHelper (no transient for tray icon independence)
+            dialog = DialogHelper.create_dialog_no_transient(
+                self.root,
+                "Quick Add Expense",
+                config.Dialog.ADD_EXPENSE_WIDTH,
+                config.Dialog.ADD_EXPENSE_WITH_NUMPAD_HEIGHT
+            )
             
-            # IMPORTANT: Withdraw immediately to prevent flash at top-left corner
-            dialog.withdraw()
-            
-            # Position dialog in same location as main window (lower-right corner)
-            dialog.update_idletasks()
+            # Position dialog using DialogHelper
             screen_width = dialog.winfo_screenwidth()
             screen_height = dialog.winfo_screenheight()
-            
-            # Position to match main window: align with main window's left edge
-            # Main window is 650px wide at (screen_width - 650 - 20)
-            x = screen_width - 650 - 20  # Align with main window's left edge
-            y = screen_height - 725 - 450  # Same 450px offset as main window
-            
-            # Adjust if dialog goes off screen
-            if y < 0:
-                y = 20
-            if x < 0:
-                x = 20
-                
-            dialog.geometry(f"{config.Dialog.ADD_EXPENSE_WIDTH}x{config.Dialog.ADD_EXPENSE_WITH_NUMPAD_HEIGHT}+{x}+{y}")
+            DialogHelper.position_with_main_window(
+                dialog, 
+                screen_width, 
+                screen_height,
+                main_width=650,
+                main_height=725,
+                offset=450,
+                dialog_width=config.Dialog.ADD_EXPENSE_WIDTH,
+                dialog_height=config.Dialog.ADD_EXPENSE_WITH_NUMPAD_HEIGHT
+            )
             
             # Content frame
             content_frame = ttk.Frame(dialog, padding="15")
@@ -517,7 +496,7 @@ class ExpenseTracker:
             button_frame = ttk.Frame(content_frame)
             button_frame.pack(fill=tk.X)
             
-            # Flag to prevent auto-close when showing messageboxes
+            # Flag to prevent auto-close when showing validation errors
             dialog._showing_messagebox = False
             
             def on_add():
@@ -557,7 +536,7 @@ class ExpenseTracker:
                     self.monthly_total += sanitized['amount']
                     self.save_data()
                     self.gui.update_display()
-                    self.update_tray_tooltip()
+                    self.tray_icon_manager.update_tooltip()
                     
                     log_info(f"Quick add expense: ${sanitized['amount']:.2f} - {sanitized['description']}")
                     self._quick_add_dialog_open = False
@@ -607,15 +586,13 @@ class ExpenseTracker:
             desc_entry.bind('<Return>', handle_description_enter)
             dialog.bind('<Escape>', lambda e: on_cancel())
             
-            log_info(f"[DIALOG] Dialog positioned at x={x}, y={y}")
-            
             # Show the dialog now that it's fully configured and positioned
             log_info("[DIALOG] Calling deiconify() to show dialog")
             dialog.deiconify()
             log_info("[DIALOG] Dialog is now visible")
             
             # Set window attributes after showing
-            if self.is_hidden:
+            if self.window_manager.is_hidden:
                 log_info("[DIALOG] Main window is hidden, using grab_set()")
                 dialog.grab_set()
             else:
@@ -630,9 +607,26 @@ class ExpenseTracker:
             amount_entry.focus_set()  # Set focus on amount entry
             log_info("[DIALOG] Focus set successfully")
             
-            # Schedule FocusOut binding after dialog is fully set up
-            log_info("[DIALOG] Scheduling FocusOut binding with 100ms delay")
-            self.root.after(100, lambda: self._bind_dialog_focus_out(dialog))
+            # Auto-close when focus leaves dialog (simplified approach)
+            # Bind only to dialog window, not all child widgets
+            def on_focus_loss(event):
+                # Small delay to allow focus to settle (e.g., clicking between widgets)
+                self.root.after(config.Threading.FOCUS_CHECK_DELAY_MS, lambda: check_if_should_close())
+            
+            def check_if_should_close():
+                if not dialog.winfo_exists():
+                    return
+                # Don't auto-close if showing a messagebox
+                if getattr(dialog, '_showing_messagebox', False):
+                    return
+                focused = dialog.focus_get()
+                # Close if no widget has focus or focus moved outside dialog
+                if focused is None or focused.winfo_toplevel() != dialog:
+                    self._quick_add_dialog_open = False
+                    dialog.destroy()
+            
+            # Bind to dialog window only (not children)
+            dialog.bind('<FocusOut>', on_focus_loss)
             
             # Track dialog
             self.open_dialogs.append(dialog)
@@ -650,100 +644,6 @@ class ExpenseTracker:
             log_error("[DIALOG] ERROR in show_quick_add_dialog", e)
             # Reset flag on error
             self._quick_add_dialog_open = False
-    
-    def _bind_dialog_focus_out(self, dialog):
-        """
-        Bind FocusOut events to all widgets in the dialog to automatically close it
-        when focus moves outside the dialog (e.g., clicking on main window or elsewhere)
-        """
-        try:
-            log_info("[DIALOG] === Starting FocusOut Binding ===")
-            
-            def bind_to_widget_tree(widget):
-                """Recursively bind FocusOut to a widget and all its children"""
-                try:
-                    log_info(f"[DIALOG] Binding FocusOut to widget: {widget}")
-                    widget.bind('<FocusOut>', lambda e: self._on_dialog_focus_out(dialog))
-                    for child in widget.winfo_children():
-                        bind_to_widget_tree(child)
-                except Exception as e:
-                    log_error(f"[DIALOG] Error binding to widget {widget}: {e}")
-            
-            # Bind to dialog and all its children
-            bind_to_widget_tree(dialog)
-            log_info("[DIALOG] FocusOut binding complete for all widgets")
-            log_info("[DIALOG] === FocusOut Binding Complete ===")
-            
-        except Exception as e:
-            log_error(f"[DIALOG] Error in _bind_dialog_focus_out: {e}")
-    
-    def _on_dialog_focus_out(self, dialog):
-        """
-        Handle FocusOut event for Quick Add dialog.
-        Schedules a focus check after a short delay to see if focus has truly left the dialog.
-        """
-        try:
-            log_info(f"[DIALOG] FocusOut event triggered by widget: {dialog.focus_get()}")
-            log_info("[DIALOG] Scheduling focus check with 50ms delay")
-            
-            # Schedule focus check after brief delay to allow focus to settle
-            self.root.after(50, lambda: self._check_dialog_focus(dialog))
-            
-        except Exception as e:
-            log_error(f"[DIALOG] Error in _on_dialog_focus_out: {e}")
-    
-    def _check_dialog_focus(self, dialog):
-        """
-        Check if focus has truly left the dialog. If so, close it.
-        This is called after a brief delay following a FocusOut event.
-        """
-        try:
-            log_info("[DIALOG] === Focus Check Started ===")
-            
-            # Check if dialog still exists
-            if not dialog.winfo_exists():
-                log_info("[DIALOG] Dialog no longer exists")
-                log_info("[DIALOG] === Focus Check Complete ===")
-                return
-            
-            log_info("[DIALOG] Dialog exists, checking focus location")
-            
-            # Get the currently focused widget
-            focused_widget = dialog.focus_get()
-            log_info(f"[DIALOG] Currently focused widget: {focused_widget}")
-            
-            # If no widget has focus or focus is outside dialog, close it
-            if focused_widget is None:
-                log_info("[DIALOG] No widget has focus - DESTROYING DIALOG")
-                self._quick_add_dialog_open = False
-                dialog.destroy()
-            else:
-                # Check if focused widget is part of the dialog
-                widget_root = focused_widget
-                is_inside_dialog = False
-                
-                # Walk up the widget tree to see if we're inside the dialog
-                while widget_root is not None:
-                    if widget_root == dialog:
-                        is_inside_dialog = True
-                        break
-                    try:
-                        widget_root = widget_root.master
-                    except:
-                        break
-                
-                if is_inside_dialog:
-                    log_info("[DIALOG] Focus still inside dialog - keeping open")
-                else:
-                    log_info("[DIALOG] Focus outside dialog - DESTROYING DIALOG")
-                    self._quick_add_dialog_open = False
-                    dialog.destroy()
-            
-            log_info("[DIALOG] === Focus Check Complete ===")
-            
-        except Exception as e:
-            log_error(f"[DIALOG] Error in _check_dialog_focus: {e}")
-    
     def close_all_dialogs(self):
         """Close all open dialogs to prevent focus issues when hiding window"""
         try:
@@ -756,7 +656,7 @@ class ExpenseTracker:
                 except Exception as e:
                     log_error(f"Error destroying dialog: {e}")
             self.open_dialogs.clear()
-            log_info("All dialogs closed")
+            log_debug("All dialogs closed")
         except Exception as e:
             log_error("Error closing dialogs", e)
     
@@ -772,8 +672,9 @@ class ExpenseTracker:
     def export_expenses_dialog(self):
         """Show export dialog for exporting expenses to Excel or PDF"""
         try:
-            # Use the new export system with dialog
-            export_expenses(self.expenses, self.current_month)
+            # Use the new export system with dialog and status bar callback
+            status_callback = self.gui.status_manager.show if hasattr(self.gui, 'status_manager') else None
+            export_expenses(self.expenses, self.current_month, status_callback)
         except Exception as e:
             log_error("Error opening export dialog", e)
             messagebox.showerror("Export Error", f"Failed to open export dialog: {e}")
@@ -781,52 +682,16 @@ class ExpenseTracker:
     def import_expenses_dialog(self):
         """Show file picker and import expense data from JSON backup"""
         try:
-            # Use the import system
-            import_expense_backup(self)
+            # Use the import system with status bar callback
+            status_callback = self.gui.status_manager.show if hasattr(self.gui, 'status_manager') else None
+            import_expense_backup(self, status_callback=status_callback)
         except Exception as e:
             log_error("Error importing backup", e)
             messagebox.showerror("Import Error", f"Failed to import backup: {e}")
             
-    def get_day_progress(self):
-        """Get current day progress in the month"""
-        return ExpenseAnalytics.calculate_day_progress()
-        
-    def get_week_progress(self):
-        """Get current week progress in the month"""
-        return ExpenseAnalytics.calculate_week_progress()
-        
-    def get_daily_average(self):
-        """Calculate average spending per day: (month total ÷ days elapsed)"""
-        return ExpenseAnalytics.calculate_daily_average(self.expenses)
-            
-    def get_weekly_average(self):
-        """Calculate average spending per week: (month total ÷ weeks elapsed in month)"""
-        return ExpenseAnalytics.calculate_weekly_average(self.expenses)
-            
-    def get_weekly_pace(self):
-        """Calculate current week's spending pace: (this week's total ÷ days elapsed this week)"""
-        return ExpenseAnalytics.calculate_weekly_pace(self.expenses)
-            
-    def get_monthly_trend_analysis(self):
-        """Get previous month's total and name"""
-        # Get previous month key
-        prev_month_date = datetime.now().replace(day=1) - timedelta(days=1)
-        prev_month_key = prev_month_date.strftime('%Y-%m')
-        prev_data_folder = f"data_{prev_month_key}"
-        
-        return ExpenseAnalytics.calculate_monthly_trend(prev_data_folder)
-    
-    def get_median_expense(self):
-        """Calculate median expense amount (typical expense size)"""
-        return ExpenseAnalytics.calculate_median_expense(self.expenses)
-    
-    def get_largest_expense(self):
-        """Get the largest expense amount and description"""
-        return ExpenseAnalytics.calculate_largest_expense(self.expenses)
-    
     def _process_gui_queue(self):
         """
-        Process GUI operations from the queue (called periodically from main thread)
+        Process all pending GUI operations from the queue.
         
         This enables thread-safe GUI operations from background threads like the tray icon.
         All GUI operations posted to self.gui_queue will be executed in the main thread.
@@ -851,9 +716,13 @@ class ExpenseTracker:
         except Exception as e:
             log_error(f"Error processing GUI queue: {e}")
         
-        # Schedule next queue check (50ms interval for responsive UI)
-        if hasattr(self, 'root') and self.root.winfo_exists():
-            self.root.after(50, self._process_gui_queue)
+        # Schedule next queue check (if application is still running)
+        try:
+            if hasattr(self, 'root') and self.root.winfo_exists():
+                self.root.after(config.Threading.GUI_QUEUE_POLL_MS, self._process_gui_queue)
+        except Exception:
+            # Application is shutting down, Tkinter already destroyed - this is expected
+            pass
         
     def run(self):
         """Run the application"""
@@ -870,10 +739,12 @@ class ExpenseTracker:
     
             
     def shutdown(self):
-        """Shutdown the application"""
-        if hasattr(self, 'tray_icon') and self.tray_icon:
-            self.tray_icon.stop()
-        self.root.quit()
+        """
+        Shutdown the application.
+        
+        Alias for quit_app() for backwards compatibility with KeyboardInterrupt handler.
+        """
+        self.quit_app()
 
 if __name__ == "__main__":
     app = ExpenseTracker()

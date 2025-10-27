@@ -43,31 +43,26 @@ class WindowAnimator:
             self.root.lift()
             self.root.focus_force()
             
-            # Force complete rendering while transparent
+            # Force complete rendering while transparent (optimized: reduced from 8 to 2 calls)
             self.root.update_idletasks()
             self.root.update()
-            
-            # Additional rendering passes to ensure all UI elements are ready
-            for _ in range(3):
-                self.root.update_idletasks()
-                self.root.update()
             
             # Fade in to prevent white flash
             def fade_in():
                 try:
-                    # Gradually increase opacity to prevent white flash (5 steps, 50ms total)
-                    for alpha in [0.2, 0.4, 0.6, 0.8, 1.0]:
+                    # Gradually increase opacity to prevent white flash (config-driven)
+                    for alpha in config.Animation.FADE_IN_STEPS:
                         self.root.attributes('-alpha', alpha)
                         self.root.update_idletasks()
-                        self.root.after(10)  # 10ms delay between steps = 50ms total
+                        self.root.after(config.Animation.FADE_IN_STEP_DELAY_MS)
                     self.is_animating = False
                 except Exception as e:
                     print(f"Error in fade-in: {e}")
                     self.root.attributes('-alpha', 1.0)
                     self.is_animating = False
             
-            # Start fade-in after a brief delay
-            self.root.after(20, fade_in)
+            # Start fade-in after a brief delay (config-driven)
+            self.root.after(config.Animation.FADE_IN_INITIAL_DELAY_MS, fade_in)
             
         except Exception as e:
             print(f"Error showing window: {e}")
@@ -114,31 +109,6 @@ class WindowAnimator:
                 # Lower power = less deceleration = more aggressive middle/end
                 return 1 - pow(1 - t, config.Animation.EASE_OUT_POWER)
             
-            # Ease-out-cubic (VERY smooth, more gradual than quad)
-            def ease_out_cubic(t):
-                return 1 - (1 - t) ** 3
-            
-            # Ease-in-out-quad (balanced - smooth start and end)
-            def ease_in_out_quad(t):
-                if t < 0.5:
-                    return 2 * t * t
-                else:
-                    return 1 - pow(-2 * t + 2, 2) / 2
-            
-            # Custom aggressive ease-in-out (faster acceleration, smooth deceleration)
-            def ease_custom_aggressive(t):
-                if t < 0.4:
-                    # First 40%: Very aggressive cubic acceleration
-                    return 3.125 * t * t * t
-                else:
-                    # Last 60%: Smooth quadratic deceleration
-                    t_adjusted = (t - 0.4) / 0.6
-                    return 0.5 + 0.5 * (1 - (1 - t_adjusted) * (1 - t_adjusted))
-            
-            # Linear (no easing - constant speed)
-            def ease_linear(t):
-                return t
-            
             # Get current window size once
             current_geometry = self.root.geometry()
             size_part = current_geometry.split('+')[0]
@@ -174,18 +144,17 @@ class WindowAnimator:
                         eased_progress = 0.0
                         current_x = start_x
                     else:
-                        eased_progress = ease_out_quad(progress)  # Try: ease_out_quad, ease_out_cubic, ease_in_out_quad, ease_custom_aggressive, ease_linear
+                        eased_progress = ease_out_quad(progress)
                         current_x = start_x + (total_distance * eased_progress)
                     pixel_delta = current_x - last_x
                     
                     # Calculate fade-out opacity (fade during last portion of animation)
-                    # Configurable fade start progress and end opacity
                     fade_start = config.Animation.FADE_START_PROGRESS
                     if progress > fade_start:
                         fade_duration = 1.0 - fade_start
-                        fade_progress = (progress - fade_start) / fade_duration  # 0 to 1 over fade duration
+                        fade_progress = (progress - fade_start) / fade_duration
                         fade_amount = 1.0 - config.Animation.FADE_END_OPACITY
-                        opacity = 1.0 - (fade_progress * fade_amount)  # Fade from 1.0 to config value
+                        opacity = 1.0 - (fade_progress * fade_amount)
                     else:
                         opacity = 1.0
                     

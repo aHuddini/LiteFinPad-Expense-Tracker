@@ -1,10 +1,10 @@
-# 💰 LiteFinPad v3.5.3
+# 💰 LiteFinPad v3.5.2
 
 <div align="center">
 
 **A lightweight, offline-first Windows expense tracker with modern UI and powerful features**
 
-![Version](https://img.shields.io/badge/version-3.5.3-blue.svg)
+![Version](https://img.shields.io/badge/version-3.5.2-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.14-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
@@ -25,42 +25,9 @@
 
 ---
 
-## 🆕 What's New in v3.5.3
+## 🆕 What's New in v3.5.2
 
-### Major Features & Enhancements (October 2025)
-
-v3.5.3 is a **significant feature release** focused on historical data exploration, streamlined workflows, and professional polish. The highlight is **Archive Mode** - a new way to safely view and analyze past months' data with clear visual distinction.
-
-**🔍 Archive Mode - View Historical Data:**
-- 📚 **Month Viewer** - Click the month title to explore past expense data
-- 🎨 **Visual distinction** - Lavender background tint when viewing archive months
-- 🔒 **Read-only protection** - All add/edit controls disabled to prevent accidental changes
-- 📊 **Full analytics** - See spending trends, category breakdowns for any month
-- 🔄 **Easy navigation** - Switch between months or return to current month instantly
-
-**⚡ Workflow Improvements:**
-- 🖱️ **System tray context menu** - Right-click for Quick Add, Open, or Quit
-- 📁 **One-click exports** - Set default save location, stop navigating folders every time
-- 📊 **Spending trend indicators** - See month-over-month changes at a glance (▲▼ icons)
-- ℹ️ **Status bar feedback** - Important actions show brief confirmation messages
-
-**📅 Flexible Date Handling:**
-- 🗓️ **Cross-month selection** - Record expenses up to 2 months back
-- 🖱️ **Mousewheel date picker** - Scroll through months effortlessly
-- 🎯 **Auto-routing** - Expenses save to correct month automatically
-
-**📊 Enhanced Expense Table:**
-- ↕️ **Column sorting** - Click headers to sort by Date, Amount, or Description
-- 📄 **Smart pagination** - Auto-appears when you have 16+ expenses
-- 💾 **Remembers preferences** - Your sort choice persists
-
-**🛠️ Developer Experience:**
-- 📚 **Organized documentation** - Structured docs/ folder (user/developer guides)
-- ⚡ **Code consolidation** - Removed 64+ lines of duplicate code
-- 📁 **Cleaner project** - Archived 48+ development backups, 90% cleaner root directory
-- 🧹 **Better architecture** - Centralized validation and messaging
-
-### Previous Release: v3.5.2 - Critical Threading Fix for Quick Add Dialog (October 2025)
+### Critical Threading Fix for Quick Add Dialog (October 2025)
 
 **Critical Fixes:**
 - 🐛 **Queue-Based Threading System**: Resolved critical GIL threading issue with Quick Add dialog
@@ -144,8 +111,8 @@ The Quick Add dialog (double-click tray icon) is the fastest way to log expenses
 ### Option 1: Download Pre-Built Executable (Recommended)
 
 1. Go to the [**Releases**](../../releases) page
-2. Download the latest `LiteFinPad_v3.5.3.zip`
-3. Extract and run `LiteFinPad_v3.5.3.exe`
+2. Download the latest `LiteFinPad_v3.5.2.zip`
+3. Extract and run `LiteFinPad_v3.5.2.exe`
 4. Look for the icon in your system tray!
 
 **No Python installation required. Just download and run.**
@@ -232,15 +199,11 @@ LiteFinPad/
 ├── build_release.bat      # Production build script
 │
 └── docs/
-    ├── README.md                 # Documentation navigation guide
-    ├── user/                     # User-facing documentation
-    │   ├── BUILD_SYSTEM_GUIDE.md
-    │   ├── VERSION_UPDATE_GUIDE.md
-    │   └── CONTRIBUTING.md
-    └── developer/                # Technical reference
-        ├── DEPENDENCIES.md
-        ├── THIRD_PARTY_LICENSES.md
-        └── PROJECT_CLEANUP_COMPLETE.md
+    ├── AI_MEMORY.md              # Project development history
+    ├── BUILD_SYSTEM_GUIDE.md     # Build instructions
+    ├── CHANGELOG.md              # Version history
+    ├── DEPENDENCIES.md           # Library documentation
+    └── THIRD_PARTY_LICENSES.md   # Open-source licenses
 ```
 
 ---
@@ -267,7 +230,7 @@ build_release.bat major
 
 **Output**: `dist/LiteFinPad_vX.X/LiteFinPad_vX.X.exe`
 
-For detailed build instructions, see [**BUILD_SYSTEM_GUIDE.md**](docs/user/BUILD_SYSTEM_GUIDE.md).
+For detailed build instructions, see [**BUILD_SYSTEM_GUIDE.md**](BUILD_SYSTEM_GUIDE.md).
 
 ---
 
@@ -286,8 +249,8 @@ For detailed build instructions, see [**BUILD_SYSTEM_GUIDE.md**](docs/user/BUILD
 | **PyInstaller** | 6.16.0+ | Executable creation |
 | **Python** | 3.11+ | Runtime (3.14 recommended) |
 
-For complete dependency information, see [**DEPENDENCIES.md**](docs/developer/DEPENDENCIES.md).  
-For third-party licenses, see [**THIRD_PARTY_LICENSES.md**](docs/developer/THIRD_PARTY_LICENSES.md).
+For complete dependency information, see [**DEPENDENCIES.md**](DEPENDENCIES.md).  
+For third-party licenses, see [**THIRD_PARTY_LICENSES.md**](THIRD_PARTY_LICENSES.md).
 
 ---
 
@@ -354,7 +317,7 @@ LiteFinPad is licensed under the **MIT License**. See [LICENSE](LICENSE) for det
 **In short**: Free to use, modify, and distribute. No warranties provided.
 
 ### Third-Party Licenses
-This project uses open-source libraries with permissive licenses. All attributions and license texts are available in [THIRD_PARTY_LICENSES.md](docs/developer/THIRD_PARTY_LICENSES.md).
+This project uses open-source libraries with permissive licenses. All attributions and license texts are available in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
 ---
 
@@ -373,7 +336,7 @@ Built with the help of:
 
 - **Issues**: [GitHub Issues](../../issues)
 - **Documentation**: See `/docs` folder for detailed guides
-- **Build Help**: [BUILD_SYSTEM_GUIDE.md](docs/user/BUILD_SYSTEM_GUIDE.md)
+- **Build Help**: [BUILD_SYSTEM_GUIDE.md](BUILD_SYSTEM_GUIDE.md)
 
 ---
 

@@ -101,7 +101,26 @@ py -3.14 -m PyInstaller ^
     --add-data "gui.py;." ^
     --add-data "expense_table.py;." ^
     --add-data "export_data.py;." ^
+    --add-data "import_data.py;." ^
     --add-data "error_logger.py;." ^
+    --add-data "analytics.py;." ^
+    --add-data "data_manager.py;." ^
+    --add-data "validation.py;." ^
+    --add-data "config.py;." ^
+    --add-data "dialog_helpers.py;." ^
+    --add-data "tray_icon_manager.py;." ^
+    --add-data "window_manager.py;." ^
+    --add-data "window_animation.py;." ^
+    --add-data "status_bar_manager.py;." ^
+    --add-data "page_manager.py;." ^
+    --add-data "quick_add_helper.py;." ^
+    --add-data "archive_mode_manager.py;." ^
+    --add-data "tooltip_manager.py;." ^
+    --add-data "dashboard_page_builder.py;." ^
+    --add-data "expense_list_page_builder.py;." ^
+    --add-data "tray_icon.py;." ^
+    --add-data "month_viewer.py;." ^
+    --add-data "widgets;widgets" ^
              --collect-submodules=xlsxwriter ^
              --collect-submodules=fpdf ^
              --hidden-import=xlsxwriter ^
@@ -305,6 +324,14 @@ if exist "data_2025-10" (
 
 copy "error_logger.py" "dist\LiteFinPad_v%CURRENT_VERSION%\error_logger.py" >NUL 2>&1
 echo [SUCCESS] Error logger copied
+
+REM Copy user-editable configuration files (NOT bundled in exe)
+copy "settings.ini" "dist\LiteFinPad_v%CURRENT_VERSION%\settings.ini" >NUL 2>&1
+echo [SUCCESS] settings.ini copied (user-editable)
+
+copy "version.txt" "dist\LiteFinPad_v%CURRENT_VERSION%\version.txt" >NUL 2>&1
+echo [SUCCESS] version.txt copied
+
 echo.
 
 REM ============================================================

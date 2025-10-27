@@ -37,9 +37,9 @@ if "%INCREMENT_MAJOR%"=="1" (
 )
 
 echo.
-echo ╔════════════════════════════════════════╗
-echo ║  PRODUCTION RELEASE BUILD: v%CURRENT_VERSION%       ║
-echo ╚════════════════════════════════════════╝
+echo ==========================================
+echo   PRODUCTION RELEASE BUILD: v%CURRENT_VERSION%
+echo ==========================================
 echo.
 
 REM Confirmation for production build
@@ -274,6 +274,14 @@ if exist "data_2025-10" (
 
 copy "error_logger.py" "dist\LiteFinPad_v%CURRENT_VERSION%\error_logger.py" >NUL 2>&1
 echo [SUCCESS] Error logger copied
+
+REM Copy user-editable configuration files (NOT bundled in exe)
+copy "settings.ini" "dist\LiteFinPad_v%CURRENT_VERSION%\settings.ini" >NUL 2>&1
+echo [SUCCESS] settings.ini copied (user-editable)
+
+copy "version.txt" "dist\LiteFinPad_v%CURRENT_VERSION%\version.txt" >NUL 2>&1
+echo [SUCCESS] version.txt copied
+
 echo.
 
 REM ============================================================
@@ -330,9 +338,9 @@ if %TOTAL_SIZE_MB% GTR 30 (
 )
 
 echo.
-echo ╔════════════════════════════════════════╗
-echo ║  PRODUCTION RELEASE READY!             ║
-echo ╚════════════════════════════════════════╝
+echo ==========================================
+echo   PRODUCTION RELEASE READY!
+echo ==========================================
 echo.
 echo Version: v%CURRENT_VERSION% (STABLE)
 echo Location: dist\LiteFinPad_v%CURRENT_VERSION%\

@@ -16,7 +16,7 @@ Created: October 19, 2025
 class Window:
     """Main window dimensions"""
     WIDTH = 700
-    HEIGHT = 1000  # Increased from 850 for inline Quick Add section
+    HEIGHT = 1000  # Restored original height - status bar only on expense list page
     COMPACT_HEIGHT = 850  # Legacy compact height
     
     # Screen margins for dialog positioning
@@ -26,7 +26,7 @@ class Window:
     MARGIN_TOP = 20
     
 class Dialog:
-    """Dialog window dimensions"""
+    """Dialog window dimensions and behavior"""
     # Add Expense Dialog (with number pad)
     ADD_EXPENSE_WIDTH = 400
     ADD_EXPENSE_HEIGHT = 670
@@ -41,9 +41,17 @@ class Dialog:
     ABOUT_HEIGHT = 480
     
     # Export Dialog
-    EXPORT_WIDTH = 520
-    EXPORT_HEIGHT = 550
+    EXPORT_WIDTH = 500
+    EXPORT_HEIGHT = 535
     EXPORT_GAP = 10  # Gap between export dialog and main window
+    
+    # Behavior
+    FOCUS_LOSS_DELAY_MS = 100    # Delay before checking if focus left dialog
+    AUTO_CLOSE_ENABLED = True     # Whether dialogs auto-close on focus loss
+    
+    # Positioning
+    DEFAULT_OFFSET_X = 20         # Default X offset from parent
+    DEFAULT_OFFSET_Y = 20         # Default Y offset from parent
 
 # ============================================================================
 # COLORS
@@ -54,12 +62,13 @@ class Colors:
     
     # === Backgrounds ===
     BG_WHITE = '#ffffff'
-    BG_LIGHT_GRAY = '#f0f0f0'
+    BG_LIGHT_GRAY = '#e5e5e5'  # Match ttk widget backgrounds and status bar
     BG_MEDIUM_GRAY = '#e0e0e0'
     BG_DARK_GRAY = '#d0d0d0'
     BG_BUTTON_DISABLED = '#D0D0D0'  # Gray when button is ON/disabled
     BG_DIALOG = '#f8f9fa'
     BG_TOTAL_ROW = '#E7E6E6'  # Export Excel total row
+    BG_ARCHIVE_TINT = '#E0DDF0'  # Darker lavender tint for archive mode
     
     # === Date Field (Dark Blue) ===
     DATE_BG = '#2E5C8A'
@@ -89,6 +98,9 @@ class Colors:
     
     # Alert/Orange
     ORANGE_PRIMARY = '#E67E00'  # Weekly pace
+    
+    # Archive/Purple
+    PURPLE_ARCHIVE = '#4A4A8A'  # Archive mode accent color
     
     # Trend/Purple
     PURPLE_PRIMARY = '#4A4A8A'  # Previous month, trend analysis
@@ -140,10 +152,15 @@ class Animation:
     """Window animation parameters"""
     
     # Slide-out animation
-    SLIDE_OUT_DURATION_MS = 200
-    EASE_OUT_POWER = 1.3  # Custom ease-out curve (was 2.0 standard)
+    SLIDE_OUT_DURATION_MS = 220  # Extended for smoother motion (less visible spikes)
+    EASE_OUT_POWER = 1.4  # Custom ease-out curve (was 2.0 standard)
     FADE_START_PROGRESS = 0.6  # Start fading at 60% progress
     FADE_END_OPACITY = 0.3  # Fade to 30% opacity
+    
+    # Slide-in animation (fade-in to prevent white flash)
+    FADE_IN_STEPS = [0.2, 0.4, 0.6, 0.8, 1.0]  # Opacity steps for smooth fade-in
+    FADE_IN_STEP_DELAY_MS = 10  # Delay between fade steps (ms)
+    FADE_IN_INITIAL_DELAY_MS = 1  # Initial delay before fade starts (ms)
     
     # Window positioning
     SCREEN_MARGIN = 20  # Pixels from screen edge
@@ -177,6 +194,19 @@ class TreeView:
     COL_DATE_WIDTH = 120
     COL_DESCRIPTION_WIDTH = 350
     COL_AMOUNT_WIDTH = 120
+    
+    # Behavior
+    SCROLL_SPEED = 3              # Mouse wheel scroll units
+    SELECTION_BG = '#0078d4'      # Selected row background
+    SELECTION_FG = 'white'        # Selected row text
+    ALTERNATING_ROWS = False      # Alternate row colors (future feature)
+    ALT_ROW_COLOR = '#f5f5f5'     # Alternate row background
+    
+    # Sorting (future feature)
+    SORT_ASCENDING_ICON = '↑'
+    SORT_DESCENDING_ICON = '↓'
+    DEFAULT_SORT_COLUMN = 'Date'
+    DEFAULT_SORT_ORDER = 'desc'   # newest first
 
 class Export:
     """Export dialog and file configuration"""
@@ -234,6 +264,139 @@ def get_font(size, weight=None):
     if weight:
         return (Fonts.FAMILY, size, weight)
     return (Fonts.FAMILY, size)
+
+class StatusBar:
+    """Status bar configuration for minimal feedback"""
+    HEIGHT = 25
+    BG_COLOR = '#e5e5e5'  # Slightly darker gray to match ttk widget backgrounds
+    TEXT_COLOR = '#323130'  # Match main text color (Colors.TEXT_GRAY_DARK)
+    BORDER_COLOR = '#d0d0d0'  # Match border/separator color
+    
+    # Status icons
+    SUCCESS_ICON = '✅'
+    ERROR_ICON = '⚠️'
+    INFO_ICON = 'ℹ️'
+    
+    # Auto-clear behavior
+    CLEAR_DELAY_MS = 5000  # Clear after 5 seconds
+
+# ============================================================================
+# THREADING & TIMING
+# ============================================================================
+
+class Threading:
+    """Threading and timing parameters"""
+    FOCUS_CHECK_DELAY_MS = 100  # Delay before checking focus change
+    GUI_QUEUE_POLL_MS = 20      # GUI queue processing interval
+
+# ============================================================================
+# USER MESSAGES
+# ============================================================================
+
+class Messages:
+    """User-facing error and info messages"""
+    
+    # Dialog titles
+    TITLE_ERROR = "Error"
+    TITLE_WARNING = "Warning"
+    TITLE_SUCCESS = "Success"
+    TITLE_VALIDATION = "Validation Error"
+    TITLE_IMPORT = "Import Backup"
+    TITLE_EXPORT = "Export Expenses"
+    TITLE_NO_SELECTION = "No Selection"
+    TITLE_DELETE_CONFIRM = "Confirm Delete"
+    TITLE_IMPORT_SUCCESS = "Import Successful"
+    TITLE_IMPORT_ERROR = "Import Error"
+    TITLE_EXPORT_SUCCESS = "Export Successful"
+    TITLE_EXPORT_ERROR = "Export Error"
+    
+    # Validation errors
+    AMOUNT_REQUIRED = "Please enter an amount"
+    AMOUNT_INVALID = "Please enter a valid number"
+    AMOUNT_POSITIVE = "Amount must be greater than 0"
+    DESCRIPTION_REQUIRED = "Please enter a description"
+    DATE_REQUIRED = "Please select a valid date"
+    
+    # Selection warnings
+    NO_SELECTION_EDIT = "Please select an expense to edit."
+    NO_SELECTION_DELETE = "Please select an expense to delete."
+    
+    # Delete confirmation
+    DELETE_CONFIRM = "Are you sure you want to delete this expense?\n\n{description}\n{amount}\n{date}"
+    
+    # Status bar success messages
+    EXPENSE_ADDED = "Expense added"
+    EXPENSE_EDITED = "Expense edited successfully"
+    EXPENSE_DELETED = "Expense deleted"
+    
+    # Import messages
+    IMPORT_NO_FILE = "No file selected"
+    IMPORT_INVALID_FORMAT = "Invalid backup file format"
+    IMPORT_INVALID_JSON = "Invalid JSON file"
+    IMPORT_INVALID_STRUCTURE = "Backup file has invalid structure"
+    IMPORT_SUCCESS = "Imported {count} expenses successfully from {month}"
+    IMPORT_FAILED = "Failed to import backup file"
+    IMPORT_NO_EXPENSES = "No expenses found in backup file"
+    
+    # Export messages
+    EXPORT_SUCCESS_EXCEL = "Exported to Excel: {filename}"
+    EXPORT_SUCCESS_PDF = "Exported to PDF: {filename}"
+    EXPORT_SUCCESS_JSON = "Backup created: {filename}"
+    EXPORT_FAILED = "Failed to export expenses"
+    EXPORT_NO_EXPENSES = "No expenses to export for {month} {year}"
+    
+    # Status bar messages
+    STATUS_EXPENSE_ADDED = "Expense added successfully"
+    STATUS_EXPENSE_UPDATED = "Expense updated successfully"
+    STATUS_EXPENSE_DELETED = "Expense deleted successfully"
+    STATUS_DATA_LOADED = "Data loaded successfully"
+    STATUS_EXPORT_COMPLETE = "Export complete"
+    STATUS_IMPORT_COMPLETE = "Import complete"
+
+# ============================================================================
+# FILE PATTERNS
+# ============================================================================
+
+class Files:
+    """File naming patterns and extensions"""
+    
+    # Data files
+    EXPENSES_FILENAME = "expenses.json"
+    CALCULATIONS_FILENAME = "calculations.json"
+    
+    # Backup/Export prefixes
+    BACKUP_PREFIX = "LiteFinPad_Backup"
+    EXPORT_EXCEL_PREFIX = "LF"
+    EXPORT_PDF_PREFIX = "LF"
+    
+    # File extensions
+    JSON_EXT = ".json"
+    EXCEL_EXT = ".xlsx"
+    PDF_EXT = ".pdf"
+    CSV_EXT = ".csv"
+    
+    # Folder patterns
+    DATA_FOLDER_PREFIX = "data_"  # data_2025-10
+    
+    @staticmethod
+    def get_data_folder(year_month):
+        """Generate data folder name (e.g., 'data_2025-10')"""
+        return f"{Files.DATA_FOLDER_PREFIX}{year_month}"
+    
+    @staticmethod
+    def get_backup_filename(timestamp):
+        """Generate backup filename (e.g., 'LiteFinPad_Backup_20251024_123045.json')"""
+        return f"{Files.BACKUP_PREFIX}_{timestamp}{Files.JSON_EXT}"
+    
+    @staticmethod
+    def get_export_filename(month, year, format_type):
+        """Generate export filename based on format"""
+        if format_type == "excel":
+            return f"{Files.EXPORT_EXCEL_PREFIX}_{month}_{year}_Expenses{Files.EXCEL_EXT}"
+        elif format_type == "pdf":
+            return f"{Files.EXPORT_PDF_PREFIX}_{month}_{year}_Expenses{Files.PDF_EXT}"
+        return None
+
 
 def get_window_geometry(width, height, x, y):
     """
