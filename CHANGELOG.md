@@ -255,6 +255,42 @@ v3.5.3 brings **professional system tray improvements**, a **minimal status bar*
   - Archive mode features now easier to enhance and extend
 - **Impact**: No visible changes - all features work exactly the same as v3.5.2
 
+### 🛠️ **Build System Improvements** (October 27, 2025)
+
+#### **1. Python Version Compatibility Fix** ⚠️ CRITICAL
+- **Fixed**: Build system was mixing Python versions
+  - `copy_libraries.bat` was copying xlsxwriter/fpdf from Python 3.11
+  - PyInstaller was building with Python 3.14
+  - Could cause compatibility issues or outdated library behavior
+- **Solution**: Updated `copy_libraries.bat` to dynamically detect Python 3.14 site-packages
+  - Queries Python directly: `py -3.14 -c "import sys; print(...)"`
+  - Works on any developer's machine (portable)
+  - No hardcoded personal paths
+  - Includes error handling if Python 3.14 not found
+- **Impact**: Ensures all library versions match the Python runtime, works for all developers
+
+#### **2. Production Build Optimization** 🗜️
+- **Removed**: Redundant Python source files from distribution
+  - Deleted 61 unnecessary `.py` files (~1 MB saved)
+  - Python only needs `.pyc` (compiled bytecode) to run - source files are for editing
+  - Kept source files when no compiled version exists (e.g., tkinter)
+- **Benefits**:
+  - Smaller distribution (~24 MB vs ~25 MB)
+  - Fewer files for users to see (335 vs 396 files)
+  - More professional package
+- **Impact**: Cleaner builds without changing functionality
+
+#### **3. User Experience: Hidden Internal Folder** 👁️
+- **Improved**: `_internal` folder now hidden from users (Windows hidden attribute)
+  - Users see only: `.exe`, `settings.ini`, `version.txt`, data folders
+  - Technical files (335 items) hidden from normal browsing
+  - Still accessible if "Show hidden files" enabled
+- **Benefits**:
+  - Professional, clean folder appearance
+  - Less overwhelming for non-technical users
+  - Matches industry-standard application packaging
+- **Impact**: Much cleaner user experience when browsing install folder
+
 
 ---
 

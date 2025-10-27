@@ -42,10 +42,12 @@ logs/
 !requirements.txt
 
 # ====================
-# Backups (Too Large for Git)
+# Backups & Test Folders (Too Large for Git)
 # ====================
 backup_*/
 *.backup
+test_*/
+test_v*/
 
 # ====================
 # IDE and Editor

@@ -92,35 +92,14 @@ echo [STEP 4/8] Building executable with PyInstaller...
 echo [INFO] This may take 1-2 minutes...
 echo.
 
+REM NOTE: Python files are auto-detected by PyInstaller through import analysis
+REM Only add resource files (icon.ico) here - DO NOT add .py files
 py -3.14 -m PyInstaller ^
     --onedir ^
     --windowed ^
     --name LiteFinPad_v%CURRENT_VERSION% ^
     --icon=icon.ico ^
     --add-data "icon.ico;." ^
-    --add-data "gui.py;." ^
-    --add-data "expense_table.py;." ^
-    --add-data "export_data.py;." ^
-    --add-data "import_data.py;." ^
-    --add-data "error_logger.py;." ^
-    --add-data "analytics.py;." ^
-    --add-data "data_manager.py;." ^
-    --add-data "validation.py;." ^
-    --add-data "config.py;." ^
-    --add-data "dialog_helpers.py;." ^
-    --add-data "tray_icon_manager.py;." ^
-    --add-data "window_manager.py;." ^
-    --add-data "window_animation.py;." ^
-    --add-data "status_bar_manager.py;." ^
-    --add-data "page_manager.py;." ^
-    --add-data "quick_add_helper.py;." ^
-    --add-data "archive_mode_manager.py;." ^
-    --add-data "tooltip_manager.py;." ^
-    --add-data "dashboard_page_builder.py;." ^
-    --add-data "expense_list_page_builder.py;." ^
-    --add-data "tray_icon.py;." ^
-    --add-data "month_viewer.py;." ^
-    --add-data "widgets;widgets" ^
              --collect-submodules=xlsxwriter ^
              --collect-submodules=fpdf ^
              --hidden-import=xlsxwriter ^
@@ -307,6 +286,19 @@ if exist "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\_ssl.pyd" (
     echo [OPT] Removed _ssl.pyd [~179KB saved]
 )
 
+REM Remove redundant .py source files where .pyc compiled versions exist
+if exist "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\xlsxwriter\__pycache__" (
+    del /q "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\xlsxwriter\*.py" 2>NUL
+    echo [OPT] Removed xlsxwriter source files (~800KB saved)
+)
+if exist "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\fpdf\__pycache__" (
+    del /q "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\fpdf\*.py" 2>NUL
+    echo [OPT] Removed fpdf source files (~250KB saved)
+)
+
+REM Hide _internal folder from users
+attrib +h "dist\LiteFinPad_v%CURRENT_VERSION%\_internal" >NUL 2>&1
+
 echo [SUCCESS] Optimizations applied
 echo.
 
@@ -322,8 +314,8 @@ if exist "data_2025-10" (
     echo [WARNING] data_2025-10 folder not found
 )
 
-copy "error_logger.py" "dist\LiteFinPad_v%CURRENT_VERSION%\error_logger.py" >NUL 2>&1
-echo [SUCCESS] Error logger copied
+REM NOTE: error_logger.py is auto-compiled by PyInstaller into _internal/
+REM No need to copy separately - it's available through import statements
 
 REM Copy user-editable configuration files (NOT bundled in exe)
 copy "settings.ini" "dist\LiteFinPad_v%CURRENT_VERSION%\settings.ini" >NUL 2>&1

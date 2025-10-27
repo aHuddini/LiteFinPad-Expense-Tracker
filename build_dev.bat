@@ -205,6 +205,19 @@ if exist "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\libssl-3.dll" (
     echo [OPT] Removed libssl-3.dll [~776KB saved]
 )
 
+REM Remove redundant .py source files where .pyc compiled versions exist
+if exist "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\xlsxwriter\__pycache__" (
+    del /q "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\xlsxwriter\*.py" 2>NUL
+    echo [OPT] Removed xlsxwriter source files (~800KB saved)
+)
+if exist "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\fpdf\__pycache__" (
+    del /q "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\fpdf\*.py" 2>NUL
+    echo [OPT] Removed fpdf source files (~250KB saved)
+)
+
+REM Hide _internal folder from users
+attrib +h "dist\LiteFinPad_v%CURRENT_VERSION%\_internal" >NUL 2>&1
+
 echo [SUCCESS] Development optimizations applied
 echo.
 
@@ -218,8 +231,8 @@ if exist "data_2025-10" (
     echo [SUCCESS] Data folder copied
 )
 
-copy "error_logger.py" "dist\LiteFinPad_v%CURRENT_VERSION%\error_logger.py" >NUL 2>&1
-echo [SUCCESS] Error logger copied
+REM NOTE: error_logger.py is auto-compiled by PyInstaller into _internal/
+REM No need to copy separately - it's available through import statements
 echo.
 
 REM ============================================================

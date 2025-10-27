@@ -752,11 +752,103 @@ I'm a beginner, not a developer. When the AI suggested we could "refactor" the c
 **For Fellow Beginners:**  
 Don't let "refactoring" intimidate you. It's just reorganizing code to make it easier to understand and maintain. If you're conservative (one change at a time, test thoroughly), it's actually very safe. You're not rewriting everything—you're just moving code into better places.
 
-### 8. **Open Source Responsibility**
+### 8. **Open Source Responsibility & Privacy: The Hardcoded Path Mistake** ⚠️
+
+**The Documentation Part (Easy):**
 - Document your dependencies (`DEPENDENCIES.md`)
 - Respect licenses (`THIRD_PARTY_LICENSES.md`)
 - Give credit to library authors
 - Make it easy for others to understand and contribute
+
+**The Privacy Part (Easy to Miss!):**
+
+#### **What I Learned the Hard Way (October 27, 2025):**
+
+When preparing v3.5.3 for GitHub release, I discovered a **major beginner mistake** that is quite embarrassing: **hardcoded personal paths in the build system**.
+
+**The Mistake:**
+```bat
+# copy_libraries.bat (BEFORE)
+set SRC_BASE=D:\Users\[username]\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages
+```
+
+This line exposed:
+- ❌ My username in the public repo
+- ❌ My specific machine's directory structure
+- ❌ Made the build system **completely non-portable** for other developers
+
+**Why This Happened:**
+
+I had already been trying to help other developers by documenting the build process and providing compilation guidance. What I *didn't* realize was that **the AI was using my local machine paths** when creating the build scripts during our development sessions.
+
+As a beginner, I didn't think to check:
+- Whether the paths in scripts were generic or specific to my machine
+- If the build system would work on someone else's computer
+- That once pushed to Git, these paths would be in the history permanently
+
+**Context:**
+- ✅ I use a dedicated laptop for development projects (isolated from my main systems)
+- ❌ But my username was still exposed in the public repo
+- ❌ The build system wouldn't work for other developers without modification
+
+**The Fix:**
+```bat
+# copy_libraries.bat (AFTER)
+for /f "delims=" %%i in ('py -3.14 -c "import sys; print([p for p in sys.path if 'site-packages' in p][0])"') do set SRC_BASE=%%i
+```
+
+Now it *should*:
+- ✅ Dynamically detect Python 3.14's site-packages path
+- ✅ Work on **any developer's machine** 
+- ✅ No personal information exposed
+- ✅ Professional and portable
+
+**The Lesson:**
+
+**Before pushing to GitHub, do a "Hardcoded Path Audit":**
+
+1. **Search for personal info:**
+   ```powershell
+   # Search for your username
+   Get-ChildItem -Recurse -Include *.bat,*.ps1,*.py | Select-String "your_username"
+   
+   # Search for hardcoded paths
+   Get-ChildItem -Recurse -Include *.bat,*.ps1,*.py | Select-String "C:\\Users\\"
+   ```
+
+2. **Ask yourself:** "If someone clones this repo, will the build scripts work?"
+
+3. **Think portable:** Use:
+   - ✅ Environment variables (`%USERPROFILE%`, `%APPDATA%`)
+   - ✅ Dynamic detection (query Python for paths)
+   - ✅ Relative paths when possible
+   - ❌ NOT absolute paths with your username
+
+**Why This Matters:**
+
+- **Privacy**: Your personal info shouldn't be in public repos
+- **Portability**: Other developers can't build your project if paths are hardcoded
+- **Professionalism**: Shows you're thinking about contributors, not just yourself
+- **Security**: Personal paths can reveal your system structure
+
+**For Fellow Beginners:**
+
+If you're using AI to help build projects, **the AI will often use YOUR machine's paths** because that's what works during development. Before going public, check:
+
+1. **Review all scripts for hardcoded paths** - Search for your username or absolute paths
+2. **Replace with dynamic detection** - Use environment variables or query the system
+3. **Test portability:** Ask yourself - "If someone else cloned this, would it work?"
+4. **Remember:** Git history is permanent - paths pushed to GitHub stay in the commit log
+
+**What I'm Doing About It:**
+
+My earlier commits have personal paths in the Git history. While the username is from a dedicated development laptop (limiting exposure), it's still not ideal. I'm exploring options to clean up the Git history before making the repository more public.
+
+**The Learning:**
+
+This isn't something professional developers explicitly teach—they just know to avoid hardcoded paths. When you're learning by doing with AI assistance, these "obvious" practices aren't always obvious. You're focused on making it work, not on making it portable.
+
+**I'm documenting this publicly** so other AI-assisted beginners catch this issue earlier than I did.
 
 ### 10. **The Widget Revelation: Learning a New Way of Thinking** 💡
 

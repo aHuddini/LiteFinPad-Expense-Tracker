@@ -1,13 +1,21 @@
 @echo off
-REM Copy required libraries from Python 3.11 site-packages to dist folder
+REM Copy required libraries from Python site-packages to dist folder
 
 echo Copying export libraries to distribution...
 
 REM Get the version number
 set /p CURRENT_VERSION=<version.txt
 
-REM Define source and destination
-set SRC_BASE=C:\Users\devuser\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages
+REM Dynamically get site-packages path using Python
+for /f "delims=" %%i in ('py -3.14 -c "import sys; print([p for p in sys.path if 'site-packages' in p][0])"') do set SRC_BASE=%%i
+
+if not defined SRC_BASE (
+    echo ERROR: Could not find Python 3.14 site-packages
+    echo Please ensure Python 3.14 is installed and accessible via 'py -3.14'
+    exit /b 1
+)
+
+echo [INFO] Using site-packages from: %SRC_BASE%
 set DIST_FOLDER=dist\LiteFinPad_v%CURRENT_VERSION%\_internal
 
 REM Create _internal folder if it doesn't exist

@@ -259,6 +259,17 @@ if exist "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\_ssl.pyd" (
     echo [OPT] Removed _ssl.pyd [~179KB saved]
 )
 
+REM Remove redundant .py source files where .pyc compiled versions exist
+REM Python only needs .pyc files to run - .py source files are redundant in production
+if exist "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\xlsxwriter\__pycache__" (
+    del /q "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\xlsxwriter\*.py" 2>NUL
+    echo [OPT] Removed xlsxwriter source files (42 files, ~800KB saved)
+)
+if exist "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\fpdf\__pycache__" (
+    del /q "dist\LiteFinPad_v%CURRENT_VERSION%\_internal\fpdf\*.py" 2>NUL
+    echo [OPT] Removed fpdf source files (19 files, ~250KB saved)
+)
+
 echo [SUCCESS] Production optimizations applied
 echo.
 
@@ -272,8 +283,8 @@ if exist "data_2025-10" (
     echo [SUCCESS] Data folder copied
 )
 
-copy "error_logger.py" "dist\LiteFinPad_v%CURRENT_VERSION%\error_logger.py" >NUL 2>&1
-echo [SUCCESS] Error logger copied
+REM NOTE: error_logger.py is auto-compiled by PyInstaller into _internal/
+REM No need to copy separately - it's available through import statements
 
 REM Copy user-editable configuration files (NOT bundled in exe)
 copy "settings.ini" "dist\LiteFinPad_v%CURRENT_VERSION%\settings.ini" >NUL 2>&1
@@ -336,6 +347,10 @@ echo   [INFO] Total Distribution: %TOTAL_SIZE_MB% MB
 if %TOTAL_SIZE_MB% GTR 30 (
     echo   [WARNING] Distribution size is larger than expected
 )
+
+REM Hide _internal folder from users (cosmetic - improves user experience)
+attrib +h "dist\LiteFinPad_v%CURRENT_VERSION%\_internal" >NUL 2>&1
+echo [INFO] _internal folder hidden from users
 
 echo.
 echo ==========================================

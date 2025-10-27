@@ -4,15 +4,12 @@ from PyInstaller.utils.hooks import collect_all
 import glob
 import os
 
-# Collect all Python files from widgets directory
-widgets_files = []
-if os.path.exists('widgets'):
-    for py_file in glob.glob('widgets/*.py'):
-        # Add tuple: (source_file, destination_directory)
-        widgets_files.append((py_file, 'widgets'))
-
-datas = [('icon.ico', '.'), ('gui.py', '.'), ('expense_table.py', '.'), ('export_data.py', '.'), ('import_data.py', '.'), ('error_logger.py', '.'), ('analytics.py', '.'), ('data_manager.py', '.'), ('validation.py', '.'), ('config.py', '.'), ('dialog_helpers.py', '.'), ('tray_icon_manager.py', '.'), ('window_manager.py', '.'), ('window_animation.py', '.'), ('status_bar_manager.py', '.'), ('page_manager.py', '.'), ('quick_add_helper.py', '.'), ('archive_mode_manager.py', '.'), ('tooltip_manager.py', '.'), ('dashboard_page_builder.py', '.'), ('expense_list_page_builder.py', '.'), ('tray_icon.py', '.'), ('month_viewer.py', '.')]
-datas += widgets_files
+# Resource files and user-editable configs ONLY
+# NOTE: Python files are automatically detected by PyInstaller through import analysis
+# DO NOT add .py files here - they will be compiled and bundled into _internal/
+datas = [
+    ('icon.ico', '.'),
+]
 binaries = []
 hiddenimports = ['xlsxwriter', 'xlsxwriter.workbook', 'xlsxwriter.worksheet', 'xlsxwriter.format', 'fpdf', 'fpdf.fpdf', 'encodings', 'encodings.utf_8', 'encodings.ascii', 'encodings.latin_1', 'encodings.cp1252', 'html', 'html.parser', 'html.entities', 'urllib', 'urllib.parse', 'urllib.request', 'base64', 'zlib', 're', 'math', 'datetime', 'json']
 hiddenimports += collect_submodules('xlsxwriter')
