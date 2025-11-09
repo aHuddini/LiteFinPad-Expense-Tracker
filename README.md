@@ -15,7 +15,7 @@
 
 ## Overview
 
-**LiteFinPad** is a streamlined Windows application for tracking monthly personal expenses. It offers a clean interface, system tray integration, and core analytics—all while keeping your data 100% offline.
+**LiteFinPad** is a Windows application for tracking monthly personal expenses. It offers a clean, functional interface, system tray integration, simple financial analytics, and offline data management.
 
 **Perfect for**:
 - Personal finance tracking
@@ -27,6 +27,19 @@
 
 ## What's New in v3.6
 
+### Budget Threshold Tracking (November 2025)
+
+**New Feature:**
+- Set a monthly spending budget threshold directly from the dashboard
+- "vs. Budget" metric shows how much you're over or under budget
+- Color-coded status indicators:
+  - 🟢 Green: Under budget (shows amount remaining)
+  - 🔴 Red: Over budget (shows amount exceeded)
+  - ⚪ Gray: Budget not set (click to set)
+- Click on budget labels to open dialog and set your monthly threshold
+- Budget persists across sessions and updates in real-time
+
+Quick Use-case: Am I "over" or "under" my current budget spending?
 ### Quick Add Autocomplete (November 2025)
 
 **New Feature:**
@@ -111,6 +124,7 @@ This fix ensures the fastest way to log expenses (Quick Add from tray) works con
 ### Core Functionality
 - **Quick Expense Entry**: Three ways to add expenses (inline, dialog, tray icon)
 - **Real-time Analytics**: Monthly totals, weekly/daily averages, spending trends
+- **Minimal Budget Tracking**: Set monthly spending threshold and monitor over/under status
 - **Organized Data Storage**: Automatic monthly folders, JSON-based storage
 - **Full Expense Management**: View, edit, delete, and search expenses
 - **Export Options**: Excel (.xlsx) and PDF formats with professional styling
@@ -196,6 +210,17 @@ python main.py
 - **Edit**: Right-click any expense → "Edit"
 - **Delete**: Right-click any expense → "Delete"
 - **Export**: Click "Export" → Choose Excel or PDF
+
+### Setting Your Monthly Budget
+1. On the Dashboard, find the "vs. Budget" section in the Spending Analysis area
+2. Click on the budget amount or status label (e.g., "Not set" or "(Click Here)")
+3. Enter your monthly spending threshold using the number pad or keyboard
+4. Click "Set" to save your budget
+5. The dashboard will immediately update to show:
+   - **Green amount**: How much you're under budget (e.g., "+$500.00")
+   - **Red amount**: How much you're over budget (e.g., "-$200.00")
+   - **Status**: "(Under)" or "(Over)" indicator
+6. Your budget persists across sessions and updates automatically as you add expenses
 
 ---
 
