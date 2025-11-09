@@ -7,6 +7,17 @@
 
 ## 🎉 What's New
 
+### Budget Threshold Tracking
+- **Set monthly spending limits** directly from the dashboard
+- **"vs. Budget" metric** shows how much you're over or under budget in real-time
+- **Color-coded status indicators:**
+  - 🟢 Green: Under budget (shows amount remaining)
+  - 🔴 Red: Over budget (shows amount exceeded)
+  - ⚪ Gray: Budget not set (click to set)
+- Click on budget labels to open dialog and set your monthly threshold
+- Budget persists across sessions and updates automatically
+- **Quick use-case:** Instantly see if you're over or under your monthly spending goal
+
 ### Quick Add Autocomplete
 - Added autocomplete suggestions to the description field in inline Quick Add expense form
 - Shows recurring expense patterns as you type
@@ -58,6 +69,7 @@
 
 ## 🐛 Bug Fixes
 
+- **Fixed:** Archive mode navigation - Current month now always appears in month menu, allowing users to return from archive mode even when current month has no expenses
 - Archive mode display values not updating
 - Archive mode button states not disabling correctly
 - Tooltip duplication and event handler issues
@@ -100,5 +112,5 @@ Thank you for using LiteFinPad! If you encounter any issues or have suggestions,
 
 ---
 
-**Full Changelog:** See [CHANGELOG.md](CHANGELOG.md) for complete details.
+**Full Changelog:** See [CHANGELOG.md](https://github.com/aHuddini/LiteFinPad/blob/main/CHANGELOG.md) for complete details.
 
