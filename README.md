@@ -50,110 +50,42 @@
 
 ---
 
-## What's New in v3.6.1
+## What's New
 
-### Dark Mode (Experimental) (November 2025)
-
-**New Feature:**
-- Experimental dark mode theme for reduced eye strain
-- Modern dark color scheme with carefully selected contrast ratios
-- Fully theme-aware throughout the application (dialogs, tables, buttons)
-- Enable/disable via `settings.ini` file (see Configuration section below)
+### v3.6.1 - Dark Mode (Experimental)
+- **Dark Mode Theme**: Modern dark color scheme for reduced eye strain
+- Enable/disable via `settings.ini` (see Configuration section)
+- Fully theme-aware across all UI components
 - Works seamlessly with Archive Mode
 
----
-
-## What's New in v3.6
-
-### Budget Threshold Tracking (November 2025)
-
-**New Feature:**
-- Set a monthly spending budget threshold directly from the dashboard
-- "vs. Budget" metric shows how much you're over or under budget
-- Color-coded status indicators:
-  - 🟢 Green: Under budget (shows amount remaining)
-  - 🔴 Red: Over budget (shows amount exceeded)
-  - ⚪ Gray: Budget not set (click to set)
-- Click on budget labels to open dialog and set your monthly threshold
-- Budget persists across sessions and updates in real-time
-
-Quick Use-case: Am I "over" or "under" my current budget spending?
-### Quick Add Autocomplete (November 2025)
-
-**New Feature:**
-- Added autocomplete suggestions to the description field in the inline Quick Add expense form
-- Shows recurring expense patterns as you type
-- Consistent experience across all expense entry methods
-- Faster expense entry with intelligent suggestions
-
-### Archive Mode Improvements (November 2025)
-
-**Fixed Issues:**
-- Archive mode now correctly displays colors and values when viewing past months
-- All analytics and totals update properly in archive mode
-- Add Expense button correctly disables when viewing archived data
-- Improved tooltip behavior and display
-
-### Code Quality Improvements (October - November 2025)
-
-**Under the Hood:**
-- Improved error handling and code organization
-- Consolidated duplicate code for better maintainability
-- Enhanced settings and date utility modules
-- Better code documentation and structure
-
-These improvements make the application more stable and easier to maintain, ensuring a better experience for users.
+### v3.6 - Budget Tracking & Improvements
+- **Budget Threshold Tracking**: Set monthly spending limits and monitor over/under status with color-coded indicators
+- **Quick Add Autocomplete**: Intelligent expense description suggestions for faster entry
+- **Archive Mode Fixes**: Improved display updates and tooltip behavior
+- **Code Quality**: Better error handling and code organization
 
 ---
 
 ## Previous Releases
 
-### v3.5.3 - Archive Mode & Export Features (October 2025)
+### v3.5.3 - Archive Mode & Export Features
+- Archive Mode for viewing historical data
+- System tray context menu
+- One-click Excel/PDF exports
+- Spending trend indicators
 
-**New Features:**
-- **Archive Mode** - View historical expense data in read-only mode with visual distinction
-- **System Tray Context Menu** - Right-click menu for quick access (Quick Add, Open, Quit)
-- **One-Click Exports** - Export monthly expenses to Excel or PDF formats
-- **Spending Trend Indicators** - Visual indicators showing spending changes month-to-month
-- **Status Bar** - Feedback bar for important actions
-- **Cross-Month Date Selection** - Expenses automatically route to the correct month folder
+### v3.5.2 - Quick Add Dialog Fix
+- Fixed threading issue with Quick Add dialog
+- Restored reliable tray icon functionality
 
-**User Experience Improvements:**
-- Mousewheel date picker for easier date selection
-- Expense table sorting by clicking column headers
-- Pagination controls for large expense lists
-- Improved data validation with real-time formatting
+### v3.5.1 - Dialog System Improvements
+- Centralized dialog system
+- Optional debug mode
 
-### v3.5.2 - Quick Add Dialog Fix (October 2025)
-
-**Critical Fix:**
-- Resolved threading issue with Quick Add dialog (double-click tray icon)
-- Quick Add dialog now works reliably without crashes
-- Restored auto-close behavior when clicking outside dialog
-
-This fix ensures the fastest way to log expenses (Quick Add from tray) works consistently on all systems.
-
----
-
-## Recent Updates (v3.5.1)
-
-### Dialog System Improvements
-
-**New Features:**
-- Centralized dialog system for consistent behavior
-- Optional debug mode for troubleshooting (via `settings.ini`)
-
-**Performance Improvements:**
-- Reduced logging overhead for better performance
-- Improved dialog display and element visibility
-
-### v3.5 - Major Update (October 2025)
-
-**Improvements:**
-- New modular architecture for better code organization
-- Centralized configuration and settings
-- Improved context menu organization
-- Enhanced maintainability and stability
+### v3.5 - Major Update
+- New modular architecture
+- Centralized configuration
+- Enhanced stability
 
 ---
 
@@ -488,7 +420,6 @@ Potential features under consideration (not committed):
 - Category-based expense tracking
 - Visual charts and graphs
 - Import from CSV/Excel
-- Dark mode theme
 - Multi-language support
 - Local AI parsing
 
