@@ -352,7 +352,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo [SUCCESS] LICENSE copied
+    echo [SUCCESS] LICENSE copied
 
 if not exist "docs\developer\THIRD_PARTY_LICENSES.txt" (
     echo [CRITICAL ERROR] THIRD_PARTY_LICENSES.txt not found!
@@ -367,7 +367,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo [SUCCESS] THIRD_PARTY_LICENSES.txt copied
+    echo [SUCCESS] THIRD_PARTY_LICENSES.txt copied
 
 echo.
 

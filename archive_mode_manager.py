@@ -140,7 +140,7 @@ class ArchiveModeManager:
         # Update display to show the correct data
         if self.update_display_callback:
             try:
-                self.update_display_callback()
+            self.update_display_callback()
             except Exception as e:
                 from error_logger import log_error
                 log_error(f"Error calling update_display_callback: {e}", e)
@@ -221,7 +221,7 @@ class ArchiveModeManager:
             else:
                 # ttk widget: use style
                 try:
-                    self.main_frame.configure(style='Archive.TFrame')
+            self.main_frame.configure(style='Archive.TFrame')
                 except Exception as e:
                     from error_logger import log_error
                     log_error(f"Error configuring main_frame style: {e}", e)
@@ -242,7 +242,7 @@ class ArchiveModeManager:
             else:
                 # ttk widget: use style
                 try:
-                    self.expense_list_frame.configure(style='Archive.TFrame')
+            self.expense_list_frame.configure(style='Archive.TFrame')
                 except Exception as e:
                     from error_logger import log_error
                     log_error(f"Error configuring expense_list_frame style: {e}", e)
@@ -278,7 +278,7 @@ class ArchiveModeManager:
                 self.add_expense_btn.configure(state='disabled')
             else:
                 # ttk button fallback
-                self.add_expense_btn.config(state='disabled')
+            self.add_expense_btn.config(state='disabled')
             # Update button tooltip
             actual_month_name = self.expense_tracker.month_viewer.format_month_display(
                 self.expense_tracker.current_month,
@@ -353,7 +353,7 @@ class ArchiveModeManager:
                     pass
             else:
                 try:
-                    self.main_frame.configure(style='TFrame')
+            self.main_frame.configure(style='TFrame')
                 except Exception:
                     pass
             # Apply styles to all widgets (this updates all labels with explicit backgrounds)
@@ -368,7 +368,7 @@ class ArchiveModeManager:
                     pass
             else:
                 try:
-                    self.expense_list_frame.configure(style='TFrame')
+            self.expense_list_frame.configure(style='TFrame')
                 except Exception:
                     pass
             # Apply styles to all widgets
@@ -399,7 +399,7 @@ class ArchiveModeManager:
                 self.add_expense_btn.configure(state='normal')
             else:
                 # ttk button fallback
-                self.add_expense_btn.config(state='normal')
+            self.add_expense_btn.config(state='normal')
             # Remove tooltip completely (button is self-explanatory in normal mode)
             # Use tooltip_manager's destroy method if available
             if hasattr(self.tooltip_creator, '__self__') and hasattr(self.tooltip_creator.__self__, 'destroy'):
@@ -408,8 +408,8 @@ class ArchiveModeManager:
             else:
                 # Fallback: manually unbind and destroy
                 try:
-                    self.add_expense_btn.unbind("<Enter>")
-                    self.add_expense_btn.unbind("<Leave>")
+            self.add_expense_btn.unbind("<Enter>")
+            self.add_expense_btn.unbind("<Leave>")
                 except:
                     pass
                 if hasattr(self.add_expense_btn, 'tooltip'):
@@ -456,18 +456,18 @@ class ArchiveModeManager:
                 
                 # Also update style for labels that use styles
                 try:
-                    current_style = str(widget.cget('style'))
-                    # Strip any existing 'Archive.' prefix
-                    base_style = current_style.replace('Archive.', '')
-                    
-                    if base_style:
-                        # Has a specific style (Title.TLabel, etc.) - add/remove Archive prefix
-                        new_style = f"{prefix}{base_style}"
-                    else:
-                        # No specific style - use default TLabel style
-                        new_style = 'Archive.TLabel' if archive else 'TLabel'
-                    
-                    widget.configure(style=new_style)
+                current_style = str(widget.cget('style'))
+                # Strip any existing 'Archive.' prefix
+                base_style = current_style.replace('Archive.', '')
+                
+                if base_style:
+                    # Has a specific style (Title.TLabel, etc.) - add/remove Archive prefix
+                    new_style = f"{prefix}{base_style}"
+                else:
+                    # No specific style - use default TLabel style
+                    new_style = 'Archive.TLabel' if archive else 'TLabel'
+                
+                widget.configure(style=new_style)
                 except (tk.TclError, AttributeError):
                     # Style update failed, continue
                     pass
@@ -490,7 +490,7 @@ class ArchiveModeManager:
                     widget.configure(style=new_style)
                 except (tk.TclError, AttributeError):
                     # Fallback to default style if we can't read current style
-                    widget.configure(style=f'{prefix}TFrame')
+                widget.configure(style=f'{prefix}TFrame')
                 
                 # Recursively update children
                 self.apply_styles_to_widgets(widget, archive)

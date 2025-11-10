@@ -747,9 +747,9 @@ class LiteFinPadGUI:
             log_info(f"[UPDATE_DISPLAY] Archive mode: {expense_count} expenses, total=${monthly_total:.2f}")
         else:
             # Current mode: exclude future expenses
-            today = datetime.now().date()
-            past_expenses = [e for e in self.expense_tracker.expenses 
-                            if (dt := DateUtils.parse_date(e['date'])) and dt.date() <= today]
+        today = datetime.now().date()
+        past_expenses = [e for e in self.expense_tracker.expenses 
+                        if (dt := DateUtils.parse_date(e['date'])) and dt.date() <= today]
             monthly_total = ExpenseDataManager.calculate_monthly_total(past_expenses)
             expense_count = len(past_expenses)
             log_info(f"[UPDATE_DISPLAY] Current mode: {expense_count} expenses, total=${monthly_total:.2f}")
@@ -782,7 +782,7 @@ class LiteFinPadGUI:
         current_week, total_weeks = ExpenseAnalytics.calculate_week_progress(context_date)
         if hasattr(self, 'day_progress_label') and self.day_progress_label:
             try:
-                self.day_progress_label.configure(text=f"{current_day} / {total_days}")
+        self.day_progress_label.configure(text=f"{current_day} / {total_days}")
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating day_progress_label: {e}")
         
@@ -795,7 +795,7 @@ class LiteFinPadGUI:
             week_display = f"{current_week:.1f} / {total_weeks}"
         if hasattr(self, 'week_progress_label') and self.week_progress_label:
             try:
-                self.week_progress_label.configure(text=week_display)
+        self.week_progress_label.configure(text=week_display)
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating week_progress_label: {e}")
         
@@ -835,17 +835,17 @@ class LiteFinPadGUI:
         
         if hasattr(self, 'pace_label') and self.pace_label:
             try:
-                self.pace_label.configure(text=f"${weekly_pace:.2f} /day")
+        self.pace_label.configure(text=f"${weekly_pace:.2f} /day")
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating pace_label: {e}")
         if hasattr(self, 'trend_label') and self.trend_label:
             try:
-                self.trend_label.configure(text=f"{trend_text} ")
+        self.trend_label.configure(text=f"{trend_text} ")
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating trend_label: {e}")
         if hasattr(self, 'trend_context_label') and self.trend_context_label:
             try:
-                self.trend_context_label.configure(text=trend_context)  # Update month name
+        self.trend_context_label.configure(text=trend_context)  # Update month name
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating trend_context_label: {e}")
         
