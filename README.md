@@ -17,7 +17,7 @@
 
 ## Overview
 
-**LiteFinPad** is a Windows application for tracking monthly personal expenses. It offers a clean, functional interface, system tray integration, simple financial analytics, and offline data management.
+**LiteFinPad** is a Windows application for quickly tracking monthly personal expenses. It offers a clean, functional interface, system tray integration, simple financial analytics, and offline data management.
 
 **Perfect for**:
 - Personal finance tracking
