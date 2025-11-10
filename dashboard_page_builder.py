@@ -569,7 +569,12 @@ class DashboardPageBuilder:
     def create_buttons_section(self):
         """Create button section with proper spacing - using CustomTkinter CTkButton"""
         # Original: button_frame.grid(row=7, column=0, columnspan=2, pady=(0, 10), sticky=(tk.W, tk.E))
-        button_frame = ttk.Frame(self.frame)
+        # Style button_frame to match main_frame background (BG_SECONDARY in dark, BG_LIGHT_GRAY in light)
+        is_dark = self.theme_manager.is_dark_mode() if self.theme_manager else False
+        frame_bg = self.colors.BG_SECONDARY if is_dark else self.colors.BG_LIGHT_GRAY
+        style = ttk.Style()
+        style.configure("ButtonSection.TFrame", background=frame_bg)
+        button_frame = ttk.Frame(self.frame, style="ButtonSection.TFrame")
         button_frame.grid(row=10, column=0, columnspan=2, pady=(0, 5), sticky=(tk.W, tk.E))  # Reduced bottom padding
         
         # Add expense button (with green accent) - using CustomTkinter for modern appearance

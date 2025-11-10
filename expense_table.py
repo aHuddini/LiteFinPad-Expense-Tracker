@@ -176,6 +176,16 @@ class ExpenseTableManager:
                              background=status_frame_bg,  # Match frame background
                              font=config.Fonts.LABEL)
         
+        # Configure pagination button style to match status bar background and text color
+        status_style.configure("TableStatus.TButton",
+                             background=status_frame_bg,
+                             foreground=status_text_color,
+                             borderwidth=1,
+                             relief='flat')
+        status_style.map("TableStatus.TButton",
+                       background=[('active', status_frame_bg), ('pressed', status_frame_bg)],
+                       foreground=[('active', status_text_color), ('pressed', status_text_color)])
+        
         self.status_label = ttk.Label(self.status_frame, text="No expenses", style="TableStatus.TLabel")
         self.status_label.pack(side=tk.LEFT)
         
@@ -184,19 +194,19 @@ class ExpenseTableManager:
         self.pagination_frame = ttk.Frame(self.status_frame, style="TableStatus.TFrame")
         self.pagination_frame.pack(side=tk.RIGHT)
         
-        self.first_page_btn = ttk.Button(self.pagination_frame, text="◄◄", width=3, command=self.first_page)
+        self.first_page_btn = ttk.Button(self.pagination_frame, text="◄◄", width=3, command=self.first_page, style="TableStatus.TButton")
         self.first_page_btn.pack(side=tk.LEFT, padx=(0, 2))
         
-        self.prev_page_btn = ttk.Button(self.pagination_frame, text="◄", width=3, command=self.prev_page)
+        self.prev_page_btn = ttk.Button(self.pagination_frame, text="◄", width=3, command=self.prev_page, style="TableStatus.TButton")
         self.prev_page_btn.pack(side=tk.LEFT, padx=(0, 5))
         
         self.page_label = ttk.Label(self.pagination_frame, text="1/1", style="TableStatus.TLabel")
         self.page_label.pack(side=tk.LEFT, padx=(0, 5))
         
-        self.next_page_btn = ttk.Button(self.pagination_frame, text="►", width=3, command=self.next_page)
+        self.next_page_btn = ttk.Button(self.pagination_frame, text="►", width=3, command=self.next_page, style="TableStatus.TButton")
         self.next_page_btn.pack(side=tk.LEFT, padx=(0, 2))
         
-        self.last_page_btn = ttk.Button(self.pagination_frame, text="►►", width=3, command=self.last_page)
+        self.last_page_btn = ttk.Button(self.pagination_frame, text="►►", width=3, command=self.last_page, style="TableStatus.TButton")
         self.last_page_btn.pack(side=tk.LEFT)
     
     def _load_sort_preferences(self):

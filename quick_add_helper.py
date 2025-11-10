@@ -116,14 +116,27 @@ class QuickAddHelper:
         
         # Configure LabelFrame border to match Expense Insights border color
         # Use a custom style to ensure background matches parent frame (expense_list_frame)
+        # CRITICAL: Must match expense_list_frame background exactly (BG_SECONDARY in dark, BG_LIGHT_GRAY in light)
         is_dark = self.theme_manager.is_dark_mode() if self.theme_manager else False
         frame_bg = self.colors.BG_SECONDARY if is_dark else self.colors.BG_LIGHT_GRAY
         border_color = self.colors.BG_DARK_GRAY  # Match Expense Insights border color
         # Use custom style name to avoid global conflicts
-        style.configure("QuickAdd.TLabelframe", background=frame_bg, bordercolor=border_color, borderwidth=1)
-        style.configure("QuickAdd.TLabelframe.Label", background=frame_bg, foreground=self.colors.TEXT_BLACK)
+        # Ensure background matches parent expense_list_frame exactly
+        style.configure("QuickAdd.TLabelframe", 
+                        background=frame_bg, 
+                        bordercolor=border_color, 
+                        borderwidth=1,
+                        relief='flat')  # Use flat relief to match parent frame
+        style.configure("QuickAdd.TLabelframe.Label", 
+                        background=frame_bg, 
+                        foreground=self.colors.TEXT_BLACK)
         # Apply the custom style to the frame
         self.frame.configure(style="QuickAdd.TLabelframe")
+        
+        # Also configure the frame's internal background to ensure it matches
+        # This is needed because ttk.LabelFrame can have a different internal background
+        style.map("QuickAdd.TLabelframe",
+                 background=[('active', frame_bg), ('!active', frame_bg)])
         
         # Configure ttk.Style for Quick Add entry fields (slightly lighter gray than Edit Expense dialog)
         # Use BG_MEDIUM_GRAY (#3f3f46) in dark mode for a lighter gray, BG_WHITE in light mode
@@ -140,14 +153,20 @@ class QuickAddHelper:
                        foreground=entry_fg,
                        borderwidth=1)
         
+        # Configure internal frames to match LabelFrame background
+        # This ensures all child frames use the same background color
+        style.configure("QuickAdd.TFrame", background=frame_bg)
+        
         # Row 1: Amount and Description
-        row1_container = ttk.Frame(self.frame)
+        row1_container = ttk.Frame(self.frame, style="QuickAdd.TFrame")
         row1_container.pack(fill=tk.X, pady=(0, 3))  # Reduced from 10 to 3 to bring date/button closer
         
         # Amount field (left, reduced width)
-        amount_frame = ttk.Frame(row1_container)
+        amount_frame = ttk.Frame(row1_container, style="QuickAdd.TFrame")
         amount_frame.pack(side=tk.LEFT, padx=(0, 15))
-        ttk.Label(amount_frame, text="Amount ($):", font=config.Fonts.LABEL, foreground=self.colors.TEXT_BLACK).pack(anchor=tk.W)
+        # Configure label style to match frame background
+        style.configure("QuickAdd.TLabel", background=frame_bg, foreground=self.colors.TEXT_BLACK)
+        ttk.Label(amount_frame, text="Amount ($):", font=config.Fonts.LABEL, style="QuickAdd.TLabel").pack(anchor=tk.W)
         self.amount_var = tk.StringVar()
         
         # Register validation function for amount field
@@ -165,9 +184,9 @@ class QuickAddHelper:
         self.amount_entry.pack(pady=(2, 0))  # 2px gap between label and entry
         
         # Description field (right, reduced width)
-        desc_frame = ttk.Frame(row1_container)
+        desc_frame = ttk.Frame(row1_container, style="QuickAdd.TFrame")
         desc_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        ttk.Label(desc_frame, text="Description:", font=config.Fonts.LABEL, foreground=self.colors.TEXT_BLACK).pack(anchor=tk.W)
+        ttk.Label(desc_frame, text="Description:", font=config.Fonts.LABEL, style="QuickAdd.TLabel").pack(anchor=tk.W)
         
         # Use AutoCompleteEntry if description_history is available, otherwise plain Entry
         if self.description_history:
@@ -217,23 +236,23 @@ class QuickAddHelper:
             self.description_entry.bind('<Return>', handle_description_enter)
         
         # Row 2: Date and Add button
-        row2_container = ttk.Frame(self.frame)
+        row2_container = ttk.Frame(self.frame, style="QuickAdd.TFrame")
         row2_container.pack(fill=tk.X, pady=(0, 0))  # No bottom padding
         
         # Date field (left) - using collapsible date combobox widget
-        date_frame = ttk.Frame(row2_container)
+        date_frame = ttk.Frame(row2_container, style="QuickAdd.TFrame")
         date_frame.pack(side=tk.LEFT, padx=(0, 15))
-        ttk.Label(date_frame, text="Date:", font=config.Fonts.LABEL, foreground=self.colors.TEXT_BLACK).pack(anchor=tk.W)
+        ttk.Label(date_frame, text="Date:", font=config.Fonts.LABEL, style="QuickAdd.TLabel").pack(anchor=tk.W)
         
         # Create collapsible date combobox (all 12 months with accordion behavior)
         self.date_combo = CollapsibleDateCombobox(date_frame)
         self.date_combo.pack(pady=(2, 0))  # 2px gap between label and combobox
         
         # Add Item button (right) - using CustomTkinter with green color
-        button_frame = ttk.Frame(row2_container)
+        button_frame = ttk.Frame(row2_container, style="QuickAdd.TFrame")
         button_frame.pack(side=tk.LEFT, padx=(15, 0))
-        # Add spacer to align button with entry fields
-        ttk.Label(button_frame, text=" ", font=config.Fonts.LABEL).pack()
+        # Add spacer to align button with entry fields - use same background as frame
+        ttk.Label(button_frame, text=" ", font=config.Fonts.LABEL, style="QuickAdd.TLabel").pack()
         self.add_button = ctk.CTkButton(
             button_frame, 
             text="+ Add Item", 

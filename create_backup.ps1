@@ -2,7 +2,7 @@
 # BACKUP CONFIGURATION - Update these values for each backup
 # ============================================================
 $backupVersion = "v3.6.1"
-$backupDescription = "build_scripts_license_files_and_indentation_fixes"  # Update this for each backup
+$backupDescription = "dark_mode_expense_list_styling_fixes"  # Update this for each backup
 # ============================================================
 
 $timestamp = Get-Date -Format 'yyyy-MM-dd_HHmmss'
