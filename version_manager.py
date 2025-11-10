@@ -1,7 +1,4 @@
-"""
-LiteFinPad Version Manager
-Handles version reading, incrementing, and validation
-"""
+"""Version reading, incrementing, and validation."""
 import os
 import re
 from typing import Tuple, Optional
@@ -12,7 +9,7 @@ README_FILE = "README.txt"
 
 
 def read_version() -> str:
-    """Read current version from version.txt"""
+    """Read current version from version.txt."""
     if not os.path.exists(VERSION_FILE):
         # Create default version file
         write_version("3.0")
@@ -30,7 +27,7 @@ def read_version() -> str:
 
 
 def update_readme_version(version: str) -> bool:
-    """Update version number in README.txt file"""
+    """Update version number in README.txt file."""
     if not os.path.exists(README_FILE):
         # README.txt doesn't exist, skip update
         return True
@@ -60,7 +57,7 @@ def update_readme_version(version: str) -> bool:
 
 
 def write_version(version: str) -> bool:
-    """Write version to version.txt with backup and update README.txt"""
+    """Write version to version.txt with backup and update README.txt."""
     try:
         # Create backup if file exists
         if os.path.exists(VERSION_FILE):
@@ -83,11 +80,7 @@ def write_version(version: str) -> bool:
 
 
 def parse_version(version: str) -> Tuple[int, int]:
-    """
-    Parse version string into major and minor components
-    Supports: "3.0", "3.1", "3.0.1" (treats as 3.0)
-    Returns: (major, minor)
-    """
+    """Parse version string into major and minor components. Returns (major, minor)."""
     try:
         # Remove any whitespace
         version = version.strip()
@@ -111,16 +104,7 @@ def parse_version(version: str) -> Tuple[int, int]:
 
 
 def increment_version(version: str, increment_type: str = "minor") -> str:
-    """
-    Increment version number
-    
-    Args:
-        version: Current version (e.g., "3.0")
-        increment_type: "major" or "minor" (default: "minor")
-    
-    Returns:
-        New version string (e.g., "3.1" or "4.0")
-    """
+    """Increment version number. increment_type: "major" or "minor" (default: "minor")."""
     major, minor = parse_version(version)
     
     if increment_type == "major":
@@ -135,7 +119,7 @@ def increment_version(version: str, increment_type: str = "minor") -> str:
 
 
 def validate_version(version: str) -> bool:
-    """Validate version string format"""
+    """Validate version string format."""
     try:
         major, minor = parse_version(version)
         # Check if parsing succeeded and values are reasonable
@@ -145,20 +129,12 @@ def validate_version(version: str) -> bool:
 
 
 def get_next_dev_version(base_version: str) -> str:
-    """
-    Get next development version
-    For development builds, we increment the minor version
-    Example: 3.0 -> 3.1, 3.1 -> 3.2
-    """
+    """Get next development version (increments minor version)."""
     return increment_version(base_version, "minor")
 
 
 def get_next_release_version(base_version: str) -> str:
-    """
-    Get next release version
-    For releases, we increment the major version
-    Example: 3.0 -> 4.0, 3.5 -> 4.0
-    """
+    """Get next release version (increments major version)."""
     return increment_version(base_version, "major")
 
 

@@ -2,7 +2,7 @@
 # BACKUP CONFIGURATION - Update these values for each backup
 # ============================================================
 $backupVersion = "v3.6.1"
-$backupDescription = "dark_mode_expense_list_styling_fixes"  # Update this for each backup
+$backupDescription = "code_simplification_and_cleanup"  # Update this for each backup
 # ============================================================
 
 $timestamp = Get-Date -Format 'yyyy-MM-dd_HHmmss'
@@ -30,6 +30,51 @@ $info = @'
 **Version:** BACKUP_VERSION_PLACEHOLDER
 
 ## What Changed
+
+### Code Simplification & Documentation Cleanup (November 10, 2025)
+- **Docstring Simplification**: Achieved 50% reduction in docstring lines
+  - Reduced from ~1,500 to 762 docstring lines (7.3% of codebase)
+  - Removed verbose explanations, PoC references, and development history
+  - Maintained 100% documentation coverage
+  - Simplified 20+ files across all phases
+- **Comment Simplification**: Achieved 50% reduction in comment lines
+  - Reduced from 1,546 to 771 comment lines (7.4% of codebase)
+  - Removed 774 redundant comment lines
+  - Removed action-verb comments (# Create..., # Add..., # Configure...)
+  - Preserved essential "why" comments explaining design decisions
+- **Project Cleanup**: Archived PoC files and internal scripts
+  - Moved `poc_dark_mode.py` to `archive_poc/` (no longer needed)
+  - Removed internal count_lines scripts (not for public release)
+  - Updated `.gitignore` to exclude internal development scripts
+- **Documentation Updates**: Created comprehensive guidelines
+  - Created `docs/internal/CODE_SIMPLIFICATION_SUMMARY.md`
+  - Created `docs/internal/AI_GUIDELINES.md` with verbosity policy
+  - Updated `docs/internal/SIMPLIFICATION_PROGRESS.md` with final metrics
+  - Updated `docs/internal/COMMENT_ANALYSIS.md` with completion status
+  - Updated `.cursorrules` with verbosity policy
+  - Updated `docs/internal/AI_MEMORY.md` with documentation standards
+- **Linter Fixes**: Fixed all indentation errors in `gui.py`
+  - Removed stray comment causing 41 linter errors
+  - All code now passes linter checks (0 errors remaining)
+
+### Code Quality & Project Analysis (November 9, 2025)
+- **Indentation Fixes (OneDrive Sync Issue)**: Fixed 74 recurring linter errors
+  - Fixed 39 indentation errors in `archive_mode_manager.py` (try/except blocks, else blocks)
+  - Fixed 35 indentation errors in `gui.py` (try/except blocks, else blocks)
+  - All code blocks now properly indented with 4-space standard
+  - Issue caused by OneDrive syncing old file versions
+- **Project Analysis & Roadmap**: Created comprehensive development roadmap
+  - Created `docs/internal/PROJECT_ANALYSIS_AND_ROADMAP.md`
+  - Identified 14 opportunities (3 high-priority, 4 medium-priority, 7 long-term)
+  - Prioritized action plan with time estimates
+  - Code quality assessment and architecture review
+  - Performance optimization opportunities
+  - Feature opportunities and technical debt analysis
+- **GitHub Repository Setup**: Made repository public with contribution guidelines
+  - Created `.github/ISSUE_TEMPLATE/bug_report.md` (simplified template)
+  - Created `.github/ISSUE_TEMPLATE/feature_request.md` (simplified template)
+  - Created `.github/pull_request_template.md` (with security checklist)
+  - Moved security guide to `docs/internal/` (not public)
 
 ### Build System Improvements (November 2025)
 - **License Files Integration**: All build scripts now require and copy license files

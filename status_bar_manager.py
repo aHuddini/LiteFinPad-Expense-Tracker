@@ -1,30 +1,4 @@
-"""
-Status Bar Manager Module for LiteFinPad v3.5.3+
-================================================
-
-Centralized status bar management for displaying user feedback messages.
-
-Features:
-- Minimal, purposeful feedback for important operations
-- Auto-clear timer (configurable)
-- Icon support for visual categorization
-- Show/hide for different pages
-- Clean API for status updates
-
-Usage:
-    status_manager = StatusBarManager(parent_widget)
-    frame = status_manager.create_ui()
-    # Grid the frame where needed
-    
-    # Show status message
-    status_manager.show("Expense added", icon="✓", auto_clear=True)
-    
-    # Clear status
-    status_manager.clear()
-    
-    # Show/hide status bar
-    status_manager.set_visible(True)
-"""
+"""Centralized status bar management for displaying user feedback messages."""
 
 import tkinter as tk
 from tkinter import ttk
@@ -32,22 +6,10 @@ import config
 
 
 class StatusBarManager:
-    """
-    Manages status bar UI and messaging for the application.
-    
-    Provides a clean interface for showing/clearing status messages with
-    automatic timer management and visibility control.
-    """
+    """Manages status bar UI and messaging for the application."""
     
     def __init__(self, parent_widget, config_module=None, theme_manager=None):
-        """
-        Initialize the status bar manager.
-        
-        Args:
-            parent_widget: Tkinter parent widget (root window or frame)
-            config_module: Optional config module (defaults to imported config)
-            theme_manager: Optional ThemeManager instance for theme-aware colors
-        """
+        """Initialize the status bar manager."""
         self.parent = parent_widget
         self.config = config_module if config_module else config
         self.theme_manager = theme_manager
@@ -60,15 +22,7 @@ class StatusBarManager:
         self.status_clear_timer = None
     
     def create_ui(self) -> tk.Frame:
-        """
-        Create and return the status bar frame widget.
-        
-        Note: The frame is NOT gridded by this method. The caller should
-        grid it where appropriate (e.g., at the bottom of the window).
-        
-        Returns:
-            tk.Frame: The status bar frame widget
-        """
+        """Create and return the status bar frame widget. Caller must grid it."""
         # Get theme-aware colors
         if self.theme_manager:
             colors = self.theme_manager.get_colors()
@@ -121,18 +75,7 @@ class StatusBarManager:
         return self.status_bar_frame
     
     def show(self, message: str, icon: str = 'ℹ️', auto_clear: bool = True):
-        """
-        Display a status message in the status bar.
-        
-        Args:
-            message: The message text to display
-            icon: Icon to show before the message (default: info icon)
-            auto_clear: Whether to automatically clear after delay (default: True)
-        
-        Example:
-            manager.show("Expense added", icon="✓")
-            manager.show("Export failed", icon="⚠", auto_clear=False)
-        """
+        """Display a status message in the status bar."""
         if not self.status_label:
             return  # Status bar not created yet
         
@@ -161,11 +104,7 @@ class StatusBarManager:
             )
     
     def clear(self):
-        """
-        Manually clear the status bar message.
-        
-        This cancels any pending auto-clear timer and clears the displayed text.
-        """
+        """Manually clear the status bar message and cancel any pending auto-clear timer."""
         if not self.status_label:
             return
         
@@ -173,15 +112,7 @@ class StatusBarManager:
         self._cancel_timer()
     
     def set_visible(self, visible: bool):
-        """
-        Show or hide the status bar.
-        
-        Args:
-            visible: True to show, False to hide
-        
-        Note: The status bar frame must have been gridded before calling this.
-        This method uses grid()/grid_remove() for visibility control.
-        """
+        """Show or hide the status bar. Frame must be gridded before calling this."""
         if not self.status_bar_frame:
             return
         
@@ -193,11 +124,7 @@ class StatusBarManager:
             self.status_bar_frame.grid_remove()
     
     def _cancel_timer(self):
-        """
-        Cancel the auto-clear timer if one is active.
-        
-        Private method for internal timer management.
-        """
+        """Cancel the auto-clear timer if one is active."""
         if self.status_clear_timer:
             self.parent.after_cancel(self.status_clear_timer)
             self.status_clear_timer = None

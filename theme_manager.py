@@ -1,14 +1,4 @@
-"""
-Theme Manager Module for LiteFinPad
-
-Provides centralized theme management and color scheme switching.
-Supports light mode (default) and dark mode (experimental, enabled via settings.ini).
-
-Usage:
-    theme_manager = ThemeManager()
-    is_dark = theme_manager.is_dark_mode()
-    colors = theme_manager.get_colors()
-"""
+"""Centralized theme management and color scheme switching (light/dark mode)."""
 
 import customtkinter as ctk
 from settings_manager import get_settings_manager
@@ -16,15 +6,7 @@ from error_logger import log_info, log_warning
 
 
 class ThemeManager:
-    """
-    Manages theme switching and provides color schemes.
-    
-    Features:
-    - Reads theme setting from settings.ini
-    - Provides theme-aware color schemes
-    - Applies CustomTkinter appearance mode
-    - Supports both light and dark modes
-    """
+    """Manages theme switching and provides color schemes."""
     
     def __init__(self):
         """Initialize theme manager and load theme setting."""
@@ -36,12 +18,7 @@ class ThemeManager:
         log_info(f"Theme Manager initialized: {mode_str} mode")
     
     def _load_theme_setting(self) -> bool:
-        """
-        Load dark mode setting from settings.ini.
-        
-        Returns:
-            bool: True if dark mode is enabled, False otherwise (default)
-        """
+        """Load dark mode setting from settings.ini."""
         try:
             dark_mode = self.settings.get(
                 'Theme',
@@ -65,21 +42,11 @@ class ThemeManager:
             log_warning(f"Could not set CustomTkinter appearance mode: {e}")
     
     def is_dark_mode(self) -> bool:
-        """
-        Check if dark mode is enabled.
-        
-        Returns:
-            bool: True if dark mode is enabled, False for light mode
-        """
+        """Check if dark mode is enabled."""
         return self._is_dark_mode
     
     def get_colors(self):
-        """
-        Get current color scheme based on theme.
-        
-        Returns:
-            Colors or DarkModeColors: Color scheme class instance
-        """
+        """Get current color scheme based on theme."""
         if self._is_dark_mode:
             from config import DarkModeColors
             return DarkModeColors()
@@ -88,12 +55,7 @@ class ThemeManager:
             return Colors()
     
     def get_archive_tint(self):
-        """
-        Get archive mode tint color based on current theme.
-        
-        Returns:
-            str: Hex color code for archive mode tint
-        """
+        """Get archive mode tint color based on current theme."""
         if self._is_dark_mode:
             # Dark mode archive tint: darker purple/lavender that works on dark backgrounds
             return '#3d2d4d'  # Dark purple-lavender tint

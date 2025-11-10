@@ -1,16 +1,4 @@
-"""
-Settings Manager Module for LiteFinPad
-
-Provides centralized, thread-safe settings management with validation
-and atomic write operations to prevent corruption.
-
-All settings operations should go through this module to ensure:
-- Consistent access patterns
-- Validation before writing
-- Atomic file operations (no partial writes)
-- Thread-safe operations
-- Easy debugging and logging
-"""
+"""Centralized, thread-safe settings management with validation and atomic writes."""
 
 import configparser
 import os
@@ -22,25 +10,10 @@ from error_logger import log_info, log_warning, log_error
 
 
 class SettingsManager:
-    """
-    Thread-safe settings manager with validation and atomic writes.
-    
-    Features:
-    - Centralized settings access
-    - Atomic file operations (write to temp, then rename)
-    - Thread-safe with lock protection
-    - Validation before writes
-    - Default value support
-    - Auto-creates missing sections
-    """
+    """Thread-safe settings manager with validation and atomic writes."""
     
     def __init__(self, settings_file: str = "settings.ini"):
-        """
-        Initialize settings manager.
-        
-        Args:
-            settings_file: Path to settings INI file (default: settings.ini)
-        """
+        """Initialize settings manager with settings file path."""
         self.settings_file = settings_file
         self.config = configparser.ConfigParser()
         self._lock = Lock()  # Thread safety
@@ -50,12 +23,7 @@ class SettingsManager:
         self.load()
     
     def load(self) -> bool:
-        """
-        Load settings from file.
-        
-        Returns:
-            bool: True if loaded successfully, False otherwise
-        """
+        """Load settings from file."""
         with self._lock:
             try:
                 if os.path.exists(self.settings_file):
@@ -75,14 +43,8 @@ class SettingsManager:
                 return False
     
     def _save_unlocked(self) -> bool:
-        """
-        Internal save method without lock (assumes caller has lock).
-        
-        Returns:
-            bool: True if saved successfully, False otherwise
-        """
+        """Internal save method without lock (assumes caller has lock)."""
         try:
-            # Create temp file in same directory as settings file
             settings_dir = os.path.dirname(self.settings_file) or '.'
             temp_fd, temp_path = tempfile.mkstemp(
                 suffix='.tmp',
@@ -92,16 +54,12 @@ class SettingsManager:
             )
             
             try:
-                # Write to temp file
                 with os.fdopen(temp_fd, 'w') as temp_file:
                     self.config.write(temp_file)
                 
-                # Verify temp file was written
                 if not os.path.exists(temp_path):
                     raise IOError("Temp file was not created")
                 
-                # Atomic replace: rename temp file to actual settings file
-                # On Windows, need to remove target first
                 if os.path.exists(self.settings_file):
                     os.replace(temp_path, self.settings_file)
                 else:
@@ -111,7 +69,6 @@ class SettingsManager:
                 return True
                 
             except Exception as e:
-                # Clean up temp file on error
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
                 raise e
@@ -121,40 +78,13 @@ class SettingsManager:
             return False
     
     def save(self) -> bool:
-        """
-        Save settings to file using atomic write operation.
-        
-        Atomic write process:
-        1. Write to temporary file
-        2. Verify write succeeded
-        3. Replace original file with temp file
-        
-        This ensures we never have a corrupted/partial settings file.
-        
-        Returns:
-            bool: True if saved successfully, False otherwise
-        """
+        """Save settings to file using atomic write operation (temp file then replace)."""
         with self._lock:
             return self._save_unlocked()
     
     def get(self, section: str, key: str, default: Any = None, 
             value_type: type = str) -> Any:
-        """
-        Get a setting value with type conversion and default support.
-        
-        Args:
-            section: Section name (e.g., "Export", "Logging")
-            key: Key name (e.g., "default_location")
-            default: Default value if key doesn't exist
-            value_type: Type to convert to (str, int, float, bool)
-            
-        Returns:
-            Setting value converted to specified type, or default if not found
-            
-        Example:
-            >>> manager.get("Logging", "debug_mode", default=False, value_type=bool)
-            False
-        """
+        """Get setting value with type conversion and default support."""
         with self._lock:
             try:
                 if not self.config.has_section(section):
@@ -181,22 +111,7 @@ class SettingsManager:
     
     def set(self, section: str, key: str, value: Any, 
             auto_save: bool = True) -> bool:
-        """
-        Set a setting value with validation.
-        
-        Args:
-            section: Section name
-            key: Key name
-            value: Value to set (will be converted to string)
-            auto_save: Whether to save immediately (default: True)
-            
-        Returns:
-            bool: True if set successfully
-            
-        Example:
-            >>> manager.set("Export", "default_location", "C:\\Users\\Documents")
-            True
-        """
+        """Set setting value with validation. Auto-saves by default."""
         with self._lock:
             try:
                 # Validate inputs
@@ -226,21 +141,7 @@ class SettingsManager:
     
     def delete(self, section: str, key: Optional[str] = None, 
                auto_save: bool = True) -> bool:
-        """
-        Delete a setting or entire section.
-        
-        Args:
-            section: Section name
-            key: Key name (if None, deletes entire section)
-            auto_save: Whether to save immediately (default: True)
-            
-        Returns:
-            bool: True if deleted successfully
-            
-        Example:
-            >>> manager.delete("Export", "old_setting")  # Delete one key
-            >>> manager.delete("OldSection")  # Delete entire section
-        """
+        """Delete setting or entire section. If key is None, deletes entire section."""
         with self._lock:
             try:
                 if key is None:
@@ -265,20 +166,7 @@ class SettingsManager:
                 return False
     
     def get_section(self, section: str) -> Dict[str, str]:
-        """
-        Get all key-value pairs in a section.
-        
-        Args:
-            section: Section name
-            
-        Returns:
-            Dictionary of key-value pairs, empty dict if section doesn't exist
-            
-        Example:
-            >>> export_settings = manager.get_section("Export")
-            >>> print(export_settings)
-            {'default_location': 'C:\\Users\\Documents', 'format': 'xlsx'}
-        """
+        """Get all key-value pairs in a section."""
         with self._lock:
             try:
                 if self.config.has_section(section):
@@ -289,53 +177,23 @@ class SettingsManager:
                 return {}
     
     def get_all_sections(self) -> List[str]:
-        """
-        Get list of all section names.
-        
-        Returns:
-            List of section names
-        """
+        """Get list of all section names."""
         with self._lock:
             return self.config.sections()
     
     def has_section(self, section: str) -> bool:
-        """
-        Check if a section exists.
-        
-        Args:
-            section: Section name
-            
-        Returns:
-            bool: True if section exists
-        """
+        """Check if a section exists."""
         with self._lock:
             return self.config.has_section(section)
     
     def has_key(self, section: str, key: str) -> bool:
-        """
-        Check if a key exists in a section.
-        
-        Args:
-            section: Section name
-            key: Key name
-            
-        Returns:
-            bool: True if key exists
-        """
+        """Check if a key exists in a section."""
         with self._lock:
             return (self.config.has_section(section) and 
                    self.config.has_option(section, key))
     
     def clear_all(self, auto_save: bool = True) -> bool:
-        """
-        Clear all settings (useful for reset/testing).
-        
-        Args:
-            auto_save: Whether to save immediately (default: True)
-            
-        Returns:
-            bool: True if cleared successfully
-        """
+        """Clear all settings (useful for reset/testing)."""
         with self._lock:
             try:
                 self.config = configparser.ConfigParser()
@@ -356,19 +214,7 @@ _settings_instance: Optional[SettingsManager] = None
 
 
 def get_settings_manager(settings_file: str = "settings.ini") -> SettingsManager:
-    """
-    Get singleton instance of SettingsManager.
-    
-    Args:
-        settings_file: Path to settings file (default: settings.ini)
-        
-    Returns:
-        SettingsManager instance
-        
-    Example:
-        >>> settings = get_settings_manager()
-        >>> debug_mode = settings.get("Logging", "debug_mode", default=False, value_type=bool)
-    """
+    """Get singleton instance of SettingsManager."""
     global _settings_instance
     
     if _settings_instance is None:

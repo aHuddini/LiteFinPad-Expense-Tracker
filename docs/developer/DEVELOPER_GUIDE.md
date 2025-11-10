@@ -591,6 +591,32 @@ class ValidationResult:
 
 ## 🛠️ Development Guidelines
 
+### Code Documentation Standards
+
+**⚠️ IMPORTANT FOR AI-ASSISTED DEVELOPMENT:**
+
+This codebase has undergone extensive cleanup (November 2025) to remove verbose comments and docstrings. **AI tools (like Cursor) tend to add excessive comments when implementing new code or making fixes.** Always review existing code style before adding documentation.
+
+**Current Standards:**
+- **Docstring Lines:** 762 (7.3%) - Concise, essential information only
+- **Comment Lines:** 771 (7.4%) - Focused on "why", not "what"
+- **Code Lines:** 6,748 (64.4%) - Self-documenting with good naming
+
+**Documentation Principles:**
+1. **Docstrings:** One-line for simple functions, 2-3 lines for complex. Focus on purpose, not implementation.
+2. **Comments:** Only explain non-obvious design decisions. Avoid action-verb comments (`# Create...`, `# Add...`).
+3. **No Development History:** Don't include PoC references or implementation notes.
+4. **Self-Documenting Code:** Use clear variable/function names instead of comments.
+
+**Common Mistakes to Avoid:**
+- ❌ Adding verbose comments explaining bug fixes
+- ❌ Commenting obvious operations
+- ❌ Including extensive parameter descriptions in docstrings
+- ❌ Adding examples unless truly necessary
+- ❌ Documenting implementation iterations or PoC references
+
+---
+
 ### Code Organization
 
 **Module Structure:**

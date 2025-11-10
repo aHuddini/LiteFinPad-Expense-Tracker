@@ -1,15 +1,4 @@
-"""
-Export Data Module for LiteFinPad v2.7 - Optimized
-=================================================
-
-Lightweight export implementation using:
-- xlsxwriter for Excel (70% smaller than openpyxl)
-- fpdf2 for PDF (87% smaller than reportlab)
-
-This module handles exporting expense data to:
-- Excel (.xlsx) - Simple table format with optional analytics
-- PDF (.pdf) - Formatted "pretty" version for viewing/printing
-"""
+"""Export expense data to Excel (.xlsx) and PDF (.pdf) formats."""
 
 import os
 import sys
@@ -31,12 +20,12 @@ class DataExporterV2:
     
     def __init__(self, expenses: List[Dict], current_month: str, status_callback=None, theme_manager=None):
         """
-        Initialize the exporter with expense data
+        Initialize the exporter with expense data.
         
         Args:
             expenses: List of expense dictionaries
             current_month: Current month string (YYYY-MM format)
-            status_callback: Optional callback function for status updates (icon, message)
+            status_callback: Optional callback for status updates
             theme_manager: Optional ThemeManager for theme-aware colors
         """
         self.expenses = expenses
@@ -47,16 +36,7 @@ class DataExporterV2:
         self.export_location = self._load_export_location()
     
     def generate_data_checksum(self, data: Dict) -> str:
-        """
-        Generate SHA-256 checksum for backup data integrity
-        
-        Args:
-            data: Dictionary to hash
-            
-        Returns:
-            str: Hex string of SHA-256 hash
-        """
-        # Convert to stable JSON string (sorted keys for consistency)
+        """Generate SHA-256 checksum for backup data integrity."""
         json_str = json.dumps(data, sort_keys=True)
         return hashlib.sha256(json_str.encode()).hexdigest()
     
@@ -67,16 +47,12 @@ class DataExporterV2:
         settings = get_settings_manager()
         location = settings.get('Export', 'default_save_location', default='')
         
-        # Validate that location exists
         if location and os.path.exists(location):
             return location
         
-        # Default to application directory (where .exe or main.py is located)
         if getattr(sys, 'frozen', False):
-            # Running as compiled executable
             app_dir = os.path.dirname(sys.executable)
         else:
-            # Running as Python script
             app_dir = os.path.abspath('.')
         
         return app_dir
@@ -88,10 +64,7 @@ class DataExporterV2:
             log_error("Failed to save export location", None)
     
     def _get_shortened_path(self, path: str) -> str:
-        """
-        Smart path truncation: show drive + first folder + ... + last 2 folders
-        Example: C:\\Users\\...\\OneDrive\\Documents
-        """
+        """Truncate long paths: show drive + first folder + ... + last 2 folders."""
         # Truncate if path is longer than 45 characters and has more than 3 parts
         if len(path) <= 45:
             return path
@@ -111,25 +84,23 @@ class DataExporterV2:
         if len(parts) <= 3:
             return path
         
-        # Get components: drive, first folder, last 2 folders
-        drive = parts[0]  # e.g., "C:"
-        first_folder = parts[1] if len(parts) > 1 else ""  # e.g., "Users"
-        second_last = parts[-2] if len(parts) > 1 else ""  # e.g., "OneDrive"
-        last_folder = parts[-1]  # e.g., "Documents"
+        drive = parts[0]
+        first_folder = parts[1] if len(parts) > 1 else ""
+        second_last = parts[-2] if len(parts) > 1 else ""
+        last_folder = parts[-1]
         
-        # Build shortened path: C:\\Users\\...\\OneDrive\\Documents
         shortened = f"{drive}{sep}{first_folder}{sep}...{sep}{second_last}{sep}{last_folder}"
         return shortened
         
     def export_to_excel(self, filename: Optional[str] = None) -> bool:
         """
-        Export expenses to Excel (.xlsx) format - Simple table with optional analytics
+        Export expenses to Excel (.xlsx) format.
         
         Args:
-            filename: Optional custom filename. If None, auto-generates one.
+            filename: Optional custom filename, auto-generates if None
             
         Returns:
-            bool: True if export successful, False otherwise
+            True if successful, False otherwise
         """
         log_export_attempt("Excel", len(self.expenses))
         
@@ -151,19 +122,14 @@ class DataExporterV2:
                 )
                 return False
             
-            # Generate filename if not provided
             if not filename:
-                # Format: LF_October_2025_Expenses.xlsx
                 filename = f"{config.Files.EXPORT_EXCEL_PREFIX}_{self.month_name.replace(' ', '_')}_Expenses{config.Files.EXCEL_EXT}"
             
-            # Use the saved export location
             save_path = os.path.join(self.export_location, filename)
             
-            # Create workbook and worksheet
             workbook = xlsxwriter.Workbook(save_path)
             worksheet = workbook.add_worksheet('Expenses')
             
-            # Define formats
             header_format = workbook.add_format({
                 'bold': True,
                 'font_color': 'white',
@@ -203,33 +169,27 @@ class DataExporterV2:
                 'border': 1
             })
             
-            # Set column widths
-            worksheet.set_column('A:A', 12)  # Date
-            worksheet.set_column('B:B', 40)  # Description
-            worksheet.set_column('C:C', 15)  # Amount
-            worksheet.set_column('D:D', 15)  # Category
+            worksheet.set_column('A:A', 12)
+            worksheet.set_column('B:B', 40)
+            worksheet.set_column('C:C', 15)
+            worksheet.set_column('D:D', 15)
             
-            # Write headers (row 0)
             headers = ['Date', 'Description', 'Amount', 'Category']
             for col, header in enumerate(headers):
                 worksheet.write(0, col, header, header_format)
             
-            # Sort expenses by date (most recent first)
             sorted_expenses = sorted(self.expenses, key=lambda x: x['date'], reverse=True)
             
-            # Write expense data
             total_amount = 0.0
             row = 1
             
             for expense in sorted_expenses:
-                # Format date
                 date_obj = DateUtils.parse_date(expense['date'])
                 if date_obj:
                     formatted_date = date_obj.strftime("%m/%d/%Y")
                 else:
                     formatted_date = expense['date']
                 
-                # Write row data
                 worksheet.write(row, 0, formatted_date, cell_format)
                 worksheet.write(row, 1, expense['description'], cell_format)
                 worksheet.write(row, 2, expense['amount'], amount_format)
@@ -238,12 +198,10 @@ class DataExporterV2:
                 total_amount += expense['amount']
                 row += 1
             
-            # Add total row
             total_row = row
             worksheet.write(total_row, 1, 'TOTAL:', total_label_format)
             worksheet.write(total_row, 2, total_amount, total_format)
             
-            # Add analytics summary below table (optional section)
             summary_row = total_row + 2
             
             summary_header_format = workbook.add_format({
@@ -259,7 +217,6 @@ class DataExporterV2:
                 avg_expense = total_amount / len(self.expenses)
                 worksheet.write(summary_row + 3, 0, f'Average Expense: ${avg_expense:.2f}')
             
-            # Close workbook
             workbook.close()
             log_export_success("Excel", save_path, len(self.expenses))
             
@@ -272,7 +229,6 @@ class DataExporterV2:
                 f"{config.Messages.LABEL_TOTAL_AMOUNT} ${total_amount:.2f}"
             )
             
-            # Update status bar if callback provided
             if self.status_callback:
                 self.status_callback(f"Exported to Excel: {os.path.basename(save_path)}", config.StatusBar.SUCCESS_ICON)
             
@@ -289,13 +245,13 @@ class DataExporterV2:
     
     def export_to_pdf(self, filename: Optional[str] = None) -> bool:
         """
-        Export expenses to PDF format - Formatted "pretty" version
+        Export expenses to PDF format.
         
         Args:
-            filename: Optional custom filename. If None, auto-generates one.
+            filename: Optional custom filename, auto-generates if None
             
         Returns:
-            bool: True if export successful, False otherwise
+            True if successful, False otherwise
         """
         log_export_attempt("PDF", len(self.expenses))
         
@@ -343,13 +299,10 @@ class DataExporterV2:
             
             pdf.ln(5)  # Line break
             
-            # Reset text color
             pdf.set_text_color(0, 0, 0)
             
-            # Sort expenses by date (most recent first)
             sorted_expenses = sorted(self.expenses, key=lambda x: x['date'], reverse=True)
             
-            # Table header
             pdf.set_font('Helvetica', 'B', 11)
             pdf.set_fill_color(0, 120, 212)  # #0078D4
             pdf.set_text_color(255, 255, 255)  # White
@@ -361,33 +314,28 @@ class DataExporterV2:
                 pdf.cell(col_widths[i], 10, header, 1, 0, 'C', 1)
             pdf.ln()
             
-            # Table data
             pdf.set_font('Helvetica', '', 10)
             pdf.set_text_color(0, 0, 0)
             
             total_amount = 0.0
-            fill = False  # Alternating row colors
+            fill = False
             
             for expense in sorted_expenses:
-                # Format date
                 date_obj = DateUtils.parse_date(expense['date'])
                 if date_obj:
                     formatted_date = date_obj.strftime("%m/%d/%Y")
                 else:
                     formatted_date = expense['date']
                 
-                # Truncate description if too long
                 description = expense['description']
                 if len(description) > 40:
                     description = description[:37] + '...'
                 
-                # Set alternating row background
                 if fill:
-                    pdf.set_fill_color(245, 245, 245)  # Light grey
+                    pdf.set_fill_color(245, 245, 245)
                 else:
-                    pdf.set_fill_color(255, 255, 255)  # White
+                    pdf.set_fill_color(255, 255, 255)
                 
-                # Write row
                 pdf.cell(col_widths[0], 8, formatted_date, 1, 0, 'C', 1)
                 pdf.cell(col_widths[1], 8, description, 1, 0, 'L', 1)
                 pdf.cell(col_widths[2], 8, f'${expense["amount"]:.2f}', 1, 0, 'R', 1)
@@ -397,7 +345,6 @@ class DataExporterV2:
                 total_amount += expense['amount']
                 fill = not fill
             
-            # Total row
             pdf.set_font('Helvetica', 'B', 11)
             pdf.set_fill_color(231, 230, 230)  # #E7E6E6
             pdf.cell(col_widths[0], 10, '', 1, 0, 'C', 1)
@@ -406,7 +353,6 @@ class DataExporterV2:
             pdf.cell(col_widths[3], 10, '', 1, 0, 'C', 1)
             pdf.ln(15)
             
-            # Summary section
             pdf.set_font('Helvetica', 'B', 12)
             pdf.cell(0, 8, 'Summary', 0, 1, 'L')
             
@@ -418,7 +364,6 @@ class DataExporterV2:
                 avg_expense = total_amount / len(self.expenses)
                 pdf.cell(0, 6, f'Average Expense: ${avg_expense:.2f}', 0, 1, 'L')
             
-            # Save PDF
             pdf.output(save_path)
             log_export_success("PDF", save_path, len(self.expenses))
             
@@ -431,7 +376,6 @@ class DataExporterV2:
                 f"{config.Messages.LABEL_TOTAL_AMOUNT} ${total_amount:.2f}"
             )
             
-            # Update status bar if callback provided
             if self.status_callback:
                 self.status_callback(f"Exported to PDF: {os.path.basename(save_path)}", config.StatusBar.SUCCESS_ICON)
             
@@ -448,11 +392,11 @@ class DataExporterV2:
     
     def export_to_json_backup(self) -> bool:
         """
-        Export all expense data to JSON backup file
-        Scans all data_* folders and creates comprehensive backup
+        Export all expense data to JSON backup file.
+        Scans all data_* folders and creates comprehensive backup.
         
         Returns:
-            bool: True if export successful, False otherwise
+            True if successful, False otherwise
         """
         log_export_attempt("JSON Backup", len(self.expenses))
         
@@ -590,7 +534,7 @@ class DataExporterV2:
             return False
     
     def show_export_dialog(self, theme_manager=None):
-        """Show enhanced dialog for selecting export format with default save location"""
+        """Show dialog for selecting export format with default save location."""
         import tkinter as tk
         from tkinter import ttk, filedialog
         
@@ -738,14 +682,6 @@ class DataExporterV2:
 
 
 def export_expenses(expenses: List[Dict], current_month: str, status_callback=None, theme_manager=None):
-    """
-    Convenience function to show export dialog
-    
-    Args:
-        expenses: List of expense dictionaries
-        current_month: Current month string (YYYY-MM format)
-        status_callback: Optional callback function for status updates (message, icon)
-        theme_manager: Optional ThemeManager for theme-aware colors
-    """
+    """Convenience function to show export dialog."""
     exporter = DataExporterV2(expenses, current_month, status_callback, theme_manager=theme_manager)
     exporter.show_export_dialog(theme_manager=theme_manager)

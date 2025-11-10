@@ -1,111 +1,86 @@
-"""
-LiteFinPad Configuration Constants
-===================================
-
-Centralized configuration for all visual and behavioral constants.
-This makes the codebase easier to maintain and customize.
-
-Version: 1.0
-Created: October 19, 2025
-"""
+"""Centralized configuration constants for visual and behavioral settings."""
 
 # ============================================================================
 # WINDOW DIMENSIONS
 # ============================================================================
 
 class Window:
-    """Main window dimensions"""
+    """Main window dimensions."""
     WIDTH = 700
-    HEIGHT = 1000  # Restored original height - status bar only on expense list page
-    COMPACT_HEIGHT = 850  # Legacy compact height
+    HEIGHT = 1000
+    COMPACT_HEIGHT = 850
     
-    # Screen margins for dialog positioning
     MARGIN_RIGHT = 20
     MARGIN_BOTTOM = 20
     MARGIN_LEFT = 20
     MARGIN_TOP = 20
     
 class Dialog:
-    """Dialog window dimensions and behavior"""
-    # Add Expense Dialog (with number pad)
+    """Dialog window dimensions and behavior."""
     ADD_EXPENSE_WIDTH = 400
     ADD_EXPENSE_HEIGHT = 670
-    ADD_EXPENSE_WITH_NUMPAD_HEIGHT = 750  # Quick Add variant (increased to prevent button cropping)
+    ADD_EXPENSE_WITH_NUMPAD_HEIGHT = 750
     
-    # Edit Expense Dialog
     EDIT_EXPENSE_WIDTH = 350
     EDIT_EXPENSE_HEIGHT = 410
     
-    # About Dialog
     ABOUT_WIDTH = 450
-    ABOUT_HEIGHT = 600  # Increased height to accommodate all content
+    ABOUT_HEIGHT = 600
     
-    # Budget Dialog
     BUDGET_WIDTH = 400
-    BUDGET_HEIGHT = 670  # Increased to accommodate buttons with proper padding (was 650)
+    BUDGET_HEIGHT = 670
     
-    # Export Dialog
     EXPORT_WIDTH = 500
     EXPORT_HEIGHT = 535
-    EXPORT_GAP = 10  # Gap between export dialog and main window
+    EXPORT_GAP = 10
     
-    # Behavior
-    FOCUS_LOSS_DELAY_MS = 100    # Delay before checking if focus left dialog
-    AUTO_CLOSE_ENABLED = True     # Whether dialogs auto-close on focus loss
+    FOCUS_LOSS_DELAY_MS = 100
+    AUTO_CLOSE_ENABLED = True
     
-    # Positioning
-    DEFAULT_OFFSET_X = 20         # Default X offset from parent
-    DEFAULT_OFFSET_Y = 20         # Default Y offset from parent
+    DEFAULT_OFFSET_X = 20
+    DEFAULT_OFFSET_Y = 20
 
 # ============================================================================
 # COLORS
 # ============================================================================
 
 class Colors:
-    """Color palette for the application"""
+    """Color palette for the application."""
     
-    # === Backgrounds ===
     BG_WHITE = '#ffffff'
-    BG_LIGHT_GRAY = '#e5e5e5'  # Match ttk widget backgrounds and status bar
+    BG_LIGHT_GRAY = '#e5e5e5'
     BG_MEDIUM_GRAY = '#e0e0e0'
     BG_DARK_GRAY = '#d0d0d0'
-    BG_BUTTON_DISABLED = '#D0D0D0'  # Gray when button is ON/disabled
+    BG_BUTTON_DISABLED = '#D0D0D0'
     BG_DIALOG = '#f8f9fa'
-    BG_TOTAL_ROW = '#E7E6E6'  # Export Excel total row
-    BG_ARCHIVE_TINT = '#E0DDF0'  # Darker lavender tint for archive mode
+    BG_TOTAL_ROW = '#E7E6E6'
+    BG_ARCHIVE_TINT = '#E0DDF0'
     
-    # === Date Field (Dark Blue) ===
     DATE_BG = '#2E5C8A'
     DATE_FG = 'white'
     
-    # === Text Colors ===
     TEXT_BLACK = '#1a1a1a'
     TEXT_GRAY_DARK = '#323130'
     TEXT_GRAY_MEDIUM = '#605e5c'
-    TEXT_GRAY_LIGHT = '#888888'  # Future expenses
-    TEXT_BROWN = '#8B4513'  # Recent expenses
+    TEXT_GRAY_LIGHT = '#888888'
+    TEXT_BROWN = '#8B4513'
     
-    # === Accent Colors ===
-    # Success/Green
-    GREEN_PRIMARY = '#107c10'  # Total amount, Add button
+    GREEN_PRIMARY = '#107c10'
     GREEN_HOVER = '#0e6b0e'
     GREEN_PRESSED = '#0c5a0c'
     
-    # Info/Blue
-    BLUE_PRIMARY = '#0078D4'  # Headers, links, progress labels
-    BLUE_LINK = '#0078D4'  # Clickable links (About dialog, etc.)
-    BLUE_NAVY = '#4A8FCE'  # Day/Week progress labels (original)
-    BLUE_NAVY_DARK = '#3A7FBE'  # Day/Week progress labels (darker variant)
-    BLUE_DARK_NAVY = '#1E3A8A'  # vs. Budget label (darker navy blue)
-    BLUE_SELECTED = '#0078d4'  # Treeview selection
+    BLUE_PRIMARY = '#0078D4'
+    BLUE_LINK = '#0078D4'
+    BLUE_NAVY = '#4A8FCE'
+    BLUE_NAVY_DARK = '#3A7FBE'
+    BLUE_DARK_NAVY = '#1E3A8A'
+    BLUE_SELECTED = '#0078d4'
     
-    # Warning/Red
-    RED_PRIMARY = '#8B0000'  # Daily average, largest expense
-    RED_INCREASE = '#C00000'  # Previous month increased spending indicator (darker red)
+    RED_PRIMARY = '#8B0000'
+    RED_INCREASE = '#C00000'
     
-    # Alert/Orange
-    ORANGE_PRIMARY = '#E67E00'  # Weekly pace
-    ORANGE_DARK = '#CC6600'  # Weekly pace label (darker orange)
+    ORANGE_PRIMARY = '#E67E00'
+    ORANGE_DARK = '#CC6600'
     
     # Archive/Purple
     PURPLE_ARCHIVE = '#4A4A8A'  # Archive mode accent color
@@ -124,176 +99,153 @@ class Colors:
 
 
 class DarkModeColors:
-    """Dark mode color palette (experimental feature)"""
+    """Dark mode color palette."""
     
-    # === Backgrounds ===
-    BG_WHITE = '#1e1e1e'          # Main window background (very dark gray)
-    BG_MAIN = '#1e1e1e'           # Main window background (alias)
-    BG_SECONDARY = '#252526'      # Secondary panels, frames
-    BG_TERTIARY = '#2d2d30'       # Input fields, buttons
-    BG_LIGHT_GRAY = '#2d2d30'     # Frame backgrounds (replaces #e5e5e5)
-    BG_MEDIUM_GRAY = '#3f3f46'    # Medium gray backgrounds
-    BG_DARK_GRAY = '#3f3f46'      # Borders (replaces #d0d0d0)
-    BG_BUTTON_DISABLED = '#3f3f46'  # Gray when button is ON/disabled
-    BG_DIALOG = '#2d2d30'         # Dialog backgrounds
-    BG_TOTAL_ROW = '#3f3f46'      # Export Excel total row
-    BG_ARCHIVE_TINT = '#3d2d4d'   # Dark purple-lavender tint for archive mode (dark mode)
-    BG_TABLE = '#2a2d3a'          # Expense table background (grayish navy blue in dark mode)
+    BG_WHITE = '#1e1e1e'
+    BG_MAIN = '#1e1e1e'
+    BG_SECONDARY = '#252526'
+    BG_TERTIARY = '#2d2d30'
+    BG_LIGHT_GRAY = '#2d2d30'
+    BG_MEDIUM_GRAY = '#3f3f46'
+    BG_DARK_GRAY = '#3f3f46'
+    BG_BUTTON_DISABLED = '#3f3f46'
+    BG_DIALOG = '#2d2d30'
+    BG_TOTAL_ROW = '#3f3f46'
+    BG_ARCHIVE_TINT = '#3d2d4d'
+    BG_TABLE = '#2a2d3a'
     
-    # === Date Field (Dark Blue) ===
-    DATE_BG = '#2E5C8A'           # Same as light mode (dark blue)
-    DATE_FG = 'white'             # Same as light mode
+    DATE_BG = '#2E5C8A'
+    DATE_FG = 'white'
     
-    # === Text Colors ===
-    TEXT_PRIMARY = '#cccccc'       # Primary text (light gray) - matches PoC
-    TEXT_BLACK = '#cccccc'         # Primary text (alias for TEXT_PRIMARY for compatibility)
-    TEXT_SECONDARY = '#a0a0a0'     # Secondary text (medium gray) - matches PoC
-    TEXT_GRAY_DARK = '#a0a0a0'    # Secondary text (alias for TEXT_SECONDARY)
-    TEXT_TERTIARY = '#808080'      # Tertiary text (darker gray) - matches PoC
-    TEXT_GRAY_MEDIUM = '#808080'  # Tertiary text (alias for TEXT_TERTIARY)
-    TEXT_GRAY_LIGHT = '#666666'   # Future expenses (lighter gray)
-    TEXT_BROWN = '#d4a574'        # Recent expenses (lighter brown)
+    TEXT_PRIMARY = '#cccccc'
+    TEXT_BLACK = '#cccccc'
+    TEXT_SECONDARY = '#a0a0a0'
+    TEXT_GRAY_DARK = '#a0a0a0'
+    TEXT_TERTIARY = '#808080'
+    TEXT_GRAY_MEDIUM = '#808080'
+    TEXT_GRAY_LIGHT = '#666666'
+    TEXT_BROWN = '#d4a574'
     
-    # === Accent Colors ===
-    # Success/Green
-    GREEN_PRIMARY = '#00cc66'      # Total amount - darker green
-    GREEN_BUTTON = '#107c10'       # Add Expense button - keep same as light mode
-    GREEN_HOVER = '#00b359'        # Hover state (slightly darker)
-    GREEN_PRESSED = '#00994d'      # Pressed state (darker)
+    GREEN_PRIMARY = '#00cc66'
+    GREEN_BUTTON = '#107c10'
+    GREEN_HOVER = '#00b359'
+    GREEN_PRESSED = '#00994d'
     
-    # Info/Blue
-    BLUE_PRIMARY = '#4fc3f7'      # Headers, links (bright blue)
-    BLUE_LINK = '#4fc3f7'        # Clickable links (bright blue)
-    BLUE_NAVY = '#5eb3f5'        # Day/Week progress labels (bright navy)
-    BLUE_NAVY_DARK = '#4da3e5'    # Day/Week progress labels (darker variant)
-    BLUE_DARK_NAVY = '#1E3A8A'   # Expense List button - keep same as light mode
-    BLUE_BUDGET = '#3E6AAA'       # vs. Budget - lighter blue
-    BLUE_SELECTED = '#4fc3f7'     # Treeview selection (bright blue)
+    BLUE_PRIMARY = '#4fc3f7'
+    BLUE_LINK = '#4fc3f7'
+    BLUE_NAVY = '#5eb3f5'
+    BLUE_NAVY_DARK = '#4da3e5'
+    BLUE_DARK_NAVY = '#1E3A8A'
+    BLUE_BUDGET = '#3E6AAA'
+    BLUE_SELECTED = '#4fc3f7'
     
-    # Warning/Red
-    RED_PRIMARY = '#f48771'       # Daily average, largest expense (coral-red)
-    RED_INCREASE = '#ff6b5a'      # Previous month increased spending indicator (brighter red)
+    RED_PRIMARY = '#f48771'
+    RED_INCREASE = '#ff6b5a'
     
-    # Alert/Orange
-    ORANGE_PRIMARY = '#ffa726'    # Weekly pace (bright orange)
-    ORANGE_DARK = '#ff9800'       # Weekly pace label (bright orange)
+    ORANGE_PRIMARY = '#ffa726'
+    ORANGE_DARK = '#ff9800'
     
-    # Archive/Purple
-    PURPLE_ARCHIVE = '#9c7bb8'    # Archive mode accent color (bright purple)
+    PURPLE_ARCHIVE = '#9c7bb8'
     
-    # Trend/Purple
-    PURPLE_PRIMARY = '#9c7bb8'    # Previous month, trend analysis (bright purple)
-    PURPLE_VIBRANT = '#ba68c8'    # Previous month label (bright purple)
+    PURPLE_PRIMARY = '#9c7bb8'
+    PURPLE_VIBRANT = '#ba68c8'
     
-    # Averages (non-primary colors)
-    TEAL_DARK = '#4dd0e1'         # Daily Average label (bright cyan)
-    AMBER_DARK = '#ffb74d'        # Weekly Average label (bright amber)
+    TEAL_DARK = '#4dd0e1'
+    AMBER_DARK = '#ffb74d'
     
-    # === Button States ===
-    BUTTON_ACTIVE_BG = '#3f3f46'  # Active button background (dark gray)
-    BUTTON_PRESSED_BG = '#2d2d30'  # Pressed button background (darker gray)
+    BUTTON_ACTIVE_BG = '#3f3f46'
+    BUTTON_PRESSED_BG = '#2d2d30'
 
 # ============================================================================
 # FONTS
 # ============================================================================
 
 class Fonts:
-    """Font configuration"""
+    """Font configuration."""
     
     FAMILY = 'Segoe UI'
     
-    # === Font Sizes ===
-    SIZE_TINY = 9       # Small labels, tooltips, About dialog
-    SIZE_SMALL = 10     # Standard labels, status
-    SIZE_NORMAL = 11    # Entries, analytics
-    SIZE_MEDIUM = 12    # Buttons, standard text
-    SIZE_LARGE = 13     # Count labels
-    SIZE_XLARGE = 14    # Bold headers
-    SIZE_TITLE = 18     # Month label
-    SIZE_HERO = 20      # About dialog title
-    SIZE_HUGE = 22      # Main title (LiteFinPad)
-    SIZE_MASSIVE = 38   # Total amount
+    SIZE_TINY = 9
+    SIZE_SMALL = 10
+    SIZE_NORMAL = 11
+    SIZE_MEDIUM = 12
+    SIZE_LARGE = 13
+    SIZE_XLARGE = 14
+    SIZE_TITLE = 18
+    SIZE_HERO = 20
+    SIZE_HUGE = 22
+    SIZE_MASSIVE = 38
     
-    # === Common Font Tuples ===
-    # Format: (family, size, style)
     TITLE = (FAMILY, SIZE_HUGE, 'bold')
     SUBTITLE = (FAMILY, SIZE_TITLE, 'bold')
     HERO_TOTAL = (FAMILY, SIZE_MASSIVE, 'bold')
     HEADER = (FAMILY, SIZE_XLARGE, 'bold')
     BUTTON = (FAMILY, SIZE_MEDIUM, 'bold')
     LABEL = (FAMILY, SIZE_SMALL)
-    LABEL_SMALL = (FAMILY, SIZE_TINY)  # Size 9 for small labels
+    LABEL_SMALL = (FAMILY, SIZE_TINY)
     ENTRY = (FAMILY, SIZE_NORMAL)
     TOOLTIP = (FAMILY, SIZE_TINY)
     LINK = (FAMILY, SIZE_TINY, 'underline')
-    ABOUT_TITLE = (FAMILY, SIZE_HERO, 'bold')  # About dialog title (20pt bold)
+    ABOUT_TITLE = (FAMILY, SIZE_HERO, 'bold')
 
 # ============================================================================
 # ANIMATION
 # ============================================================================
 
 class Animation:
-    """Window animation parameters"""
+    """Window animation parameters."""
     
-    # Slide-out animation
-    SLIDE_OUT_DURATION_MS = 220  # Extended for smoother motion (less visible spikes)
-    EASE_OUT_POWER = 1.4  # Custom ease-out curve (was 2.0 standard)
-    FADE_START_PROGRESS = 0.6  # Start fading at 60% progress
-    FADE_END_OPACITY = 0.3  # Fade to 30% opacity
+    SLIDE_OUT_DURATION_MS = 220
+    EASE_OUT_POWER = 1.4
+    FADE_START_PROGRESS = 0.6
+    FADE_END_OPACITY = 0.3
     
-    # Slide-in animation (fade-in to prevent white flash)
-    FADE_IN_STEPS = [0.2, 0.4, 0.6, 0.8, 1.0]  # Opacity steps for smooth fade-in
-    FADE_IN_STEP_DELAY_MS = 10  # Delay between fade steps (ms)
-    FADE_IN_INITIAL_DELAY_MS = 1  # Initial delay before fade starts (ms)
+    FADE_IN_STEPS = [0.2, 0.4, 0.6, 0.8, 1.0]
+    FADE_IN_STEP_DELAY_MS = 10
+    FADE_IN_INITIAL_DELAY_MS = 1
     
-    # Window positioning
-    SCREEN_MARGIN = 20  # Pixels from screen edge
+    SCREEN_MARGIN = 20
 
 # ============================================================================
 # UI COMPONENTS
 # ============================================================================
 
 class NumberPad:
-    """Number pad widget configuration"""
+    """Number pad widget configuration."""
     
     BUTTON_WIDTH = 2
     FONT_SIZE = 12
     FONT_WEIGHT = 'bold'
-    PADDING = (8, 10)  # (horizontal, vertical)
-    GRID_SPACING = 5  # Pixels between buttons
-    FRAME_PADDING = 10  # Frame internal padding
-    MAX_AMOUNT_LENGTH = 10  # 9999999.99 format
+    PADDING = (8, 10)
+    GRID_SPACING = 5
+    FRAME_PADDING = 10
+    MAX_AMOUNT_LENGTH = 10
 
 class TreeView:
-    """Treeview/Table configuration"""
+    """Treeview/Table configuration."""
     
-    # Row heights
     ROW_HEIGHT = 28
     
-    # Font sizes
     HEADER_FONT_SIZE = 10
     BODY_FONT_SIZE = 10
     
-    # Column widths (used in expense_table.py)
     COL_DATE_WIDTH = 120
     COL_DESCRIPTION_WIDTH = 350
     COL_AMOUNT_WIDTH = 120
     
-    # Behavior
-    SCROLL_SPEED = 3              # Mouse wheel scroll units
-    SELECTION_BG = '#0078d4'      # Selected row background
-    SELECTION_FG = 'white'        # Selected row text
-    ALTERNATING_ROWS = False      # Alternate row colors (future feature)
-    ALT_ROW_COLOR = '#f5f5f5'     # Alternate row background
+    SCROLL_SPEED = 3
+    SELECTION_BG = '#0078d4'
+    SELECTION_FG = 'white'
+    ALTERNATING_ROWS = False
+    ALT_ROW_COLOR = '#f5f5f5'
     
-    # Sorting (future feature)
     SORT_ASCENDING_ICON = '↑'
     SORT_DESCENDING_ICON = '↓'
     DEFAULT_SORT_COLUMN = 'Date'
-    DEFAULT_SORT_ORDER = 'desc'   # newest first
+    DEFAULT_SORT_ORDER = 'desc'
 
 class Export:
-    """Export dialog and file configuration"""
+    """Export dialog and file configuration."""
     
     DIALOG_WIDTH = 400
     DIALOG_HEIGHT = 300
@@ -308,7 +260,7 @@ class Export:
 # ============================================================================
 
 class Validation:
-    """Input validation parameters"""
+    """Input validation parameters."""
     
     MAX_AMOUNT_VALUE = 9999999.99
     MAX_AMOUNT_DECIMALS = 2
@@ -320,7 +272,7 @@ class Validation:
 # ============================================================================
 
 class App:
-    """Application metadata"""
+    """Application metadata."""
     
     NAME = "LiteFinPad"
     TAGLINE = "Monthly Expense Tracker"
@@ -335,22 +287,13 @@ class App:
 # ============================================================================
 
 def get_font(size, weight=None):
-    """
-    Get a font tuple with standard family.
-    
-    Args:
-        size: Font size (use Fonts.SIZE_* constants)
-        weight: Optional weight ('bold', 'italic', etc.)
-    
-    Returns:
-        Tuple: (family, size) or (family, size, weight)
-    """
+    """Get font tuple with standard family."""
     if weight:
         return (Fonts.FAMILY, size, weight)
     return (Fonts.FAMILY, size)
 
 class StatusBar:
-    """Status bar configuration for minimal feedback"""
+    """Status bar configuration for minimal feedback."""
     HEIGHT = 25
     BG_COLOR = '#e5e5e5'  # Slightly darker gray to match ttk widget backgrounds
     TEXT_COLOR = '#323130'  # Match main text color (Colors.TEXT_GRAY_DARK)
@@ -369,7 +312,7 @@ class StatusBar:
 # ============================================================================
 
 class Threading:
-    """Threading and timing parameters"""
+    """Threading and timing parameters."""
     FOCUS_CHECK_DELAY_MS = 100  # Delay before checking focus change
     GUI_QUEUE_POLL_MS = 20      # GUI queue processing interval
 
@@ -378,7 +321,7 @@ class Threading:
 # ============================================================================
 
 class Messages:
-    """User-facing error and info messages"""
+    """User-facing error and info messages."""
     
     # Dialog titles
     TITLE_ERROR = "Error"
@@ -450,13 +393,7 @@ class Messages:
 # ============================================================================
 
 class CustomTkinterTheme:
-    """
-    CustomTkinter theme and appearance settings.
-    
-    These constants configure the visual appearance when using CustomTkinter
-    widgets. CustomTkinter provides modern styling while keeping Tkinter's
-    underlying functionality.
-    """
+    """CustomTkinter theme and appearance settings."""
     
     # === Appearance Mode ===
     # Options: "light", "dark", "system" (follows system theme)
@@ -488,7 +425,7 @@ class CustomTkinterTheme:
 # ============================================================================
 
 class Files:
-    """File naming patterns and extensions"""
+    """File naming patterns and extensions."""
     
     # Data files
     EXPENSES_FILENAME = "expenses.json"
@@ -510,17 +447,17 @@ class Files:
     
     @staticmethod
     def get_data_folder(year_month):
-        """Generate data folder name (e.g., 'data_2025-10')"""
+        """Generate data folder name."""
         return f"{Files.DATA_FOLDER_PREFIX}{year_month}"
     
     @staticmethod
     def get_backup_filename(timestamp):
-        """Generate backup filename (e.g., 'LiteFinPad_Backup_20251024_123045.json')"""
+        """Generate backup filename."""
         return f"{Files.BACKUP_PREFIX}_{timestamp}{Files.JSON_EXT}"
     
     @staticmethod
     def get_export_filename(month, year, format_type):
-        """Generate export filename based on format"""
+        """Generate export filename based on format."""
         if format_type == "excel":
             return f"{Files.EXPORT_EXCEL_PREFIX}_{month}_{year}_Expenses{Files.EXCEL_EXT}"
         elif format_type == "pdf":
@@ -529,17 +466,6 @@ class Files:
 
 
 def get_window_geometry(width, height, x, y):
-    """
-    Format a geometry string for Tkinter.
-    
-    Args:
-        width: Window width in pixels
-        height: Window height in pixels
-        x: X position
-        y: Y position
-    
-    Returns:
-        str: Formatted geometry string "WIDTHxHEIGHT+X+Y"
-    """
+    """Format geometry string for Tkinter (WIDTHxHEIGHT+X+Y)."""
     return f"{width}x{height}+{x}+{y}"
 

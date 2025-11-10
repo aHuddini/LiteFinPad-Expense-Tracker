@@ -1,31 +1,18 @@
-"""
-LiteFinPad - Tooltip Manager
-Handles tooltip creation, updates, and lifecycle management for GUI widgets.
-"""
+"""Tooltip creation, updates, and lifecycle management for GUI widgets."""
 
 import tkinter as tk
 import config
 
 
 class TooltipManager:
-    """
-    Manages tooltips for GUI widgets.
-    
-    Provides centralized tooltip creation, positioning, styling, and updates.
-    """
+    """Manages tooltips for GUI widgets."""
     
     def __init__(self):
         """Initialize the tooltip manager"""
         pass
     
     def create(self, widget, text):
-        """
-        Create a tooltip for a widget.
-        
-        Args:
-            widget: The tkinter widget to attach the tooltip to
-            text: The tooltip text to display
-        """
+        """Create a tooltip for a widget."""
         # Unbind existing tooltip handlers to prevent duplicates
         try:
             widget.unbind("<Enter>")
@@ -87,13 +74,7 @@ class TooltipManager:
         widget.bind("<Leave>", on_leave)
     
     def update(self, widget, new_text):
-        """
-        Update the tooltip text for a widget.
-        
-        Args:
-            widget: The widget whose tooltip to update
-            new_text: The new tooltip text
-        """
+        """Update the tooltip text for a widget."""
         # Destroy existing tooltip if visible
         if hasattr(widget, 'tooltip'):
             try:
@@ -114,12 +95,7 @@ class TooltipManager:
         self.create(widget, new_text)
     
     def destroy(self, widget):
-        """
-        Destroy the tooltip for a widget.
-        
-        Args:
-            widget: The widget whose tooltip to destroy
-        """
+        """Destroy the tooltip for a widget."""
         # Unbind event handlers
         try:
             widget.unbind("<Enter>")

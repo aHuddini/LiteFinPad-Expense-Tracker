@@ -1,34 +1,4 @@
-"""
-Quick Add Helper Module for LiteFinPad v3.5.3+
-===============================================
-
-Manages the inline Quick Add expense functionality.
-
-Features:
-- Amount, description, and date input fields
-- Real-time validation
-- Cross-month expense routing
-- Archive mode enable/disable
-- Enter key sequential navigation
-- Status bar integration
-- Auto-clear and focus management
-
-Usage:
-    quick_add = QuickAddHelper(
-        parent_widget=expense_list_frame,
-        expense_tracker=self.expense_tracker,
-        on_add_callback=self.refresh_display,
-        status_manager=self.status_manager
-    )
-    
-    # Create UI
-    frame = quick_add.create_ui()
-    frame.grid(row=3, column=0, pady=(10, 0), sticky=(tk.W, tk.E))
-    
-    # Enable/disable for archive mode
-    quick_add.set_enabled(False)  # Disable in archive mode
-    quick_add.set_enabled(True)   # Enable in normal mode
-"""
+"""Inline Quick Add expense functionality with validation, cross-month routing, and archive mode integration."""
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -41,38 +11,13 @@ from validation import InputValidation
 
 
 class QuickAddHelper:
-    """
-    Manages the inline Quick Add expense functionality.
-    
-    Handles:
-    - UI creation for amount, description, date fields
-    - Expense validation and creation
-    - Cross-month routing (saves to correct month folder)
-    - Archive mode enable/disable
-    - Status bar messaging
-    - Form clearing and focus management
-    """
+    """Manages the inline Quick Add expense functionality."""
     
     def __init__(self, parent_widget, expense_tracker, on_add_callback=None, 
                  status_manager=None, page_manager=None, table_manager=None,
                  update_metrics_callback=None, count_tracker=None, gui_instance=None,
                  description_history=None, theme_manager=None):
-        """
-        Initialize the Quick Add Helper.
-        
-        Args:
-            parent_widget: Parent frame to create UI in
-            expense_tracker: ExpenseTracker instance for adding expenses
-            on_add_callback: Optional callback after expense added (for refresh)
-            status_manager: Optional StatusBarManager for messages
-            page_manager: Optional PageManager for page checks
-            table_manager: Optional table manager for refresh
-            update_metrics_callback: Optional callback to update expense metrics
-            count_tracker: Optional count tracker for table refresh sync
-            gui_instance: Optional GUI instance for tooltip creation
-            description_history: Optional DescriptionHistory instance for autocomplete
-            theme_manager: Optional ThemeManager instance for theme-aware colors
-        """
+        """Initialize the Quick Add Helper."""
         self.parent = parent_widget
         self.expense_tracker = expense_tracker
         self.on_add_callback = on_add_callback
@@ -100,71 +45,48 @@ class QuickAddHelper:
         self.frame = None
     
     def create_ui(self):
-        """
-        Create and return the Quick Add UI frame.
-        
-        Returns:
-            tk.Frame: The Quick Add section frame
-        """
-        # Quick Add container - use ttk.LabelFrame with border styling
+        """Create and return the Quick Add UI frame."""
         self.frame = ttk.LabelFrame(self.parent, text="Quick Add Expense", padding="15")
         self.frame.columnconfigure(0, weight=1)
         
-        # Configure LabelFrame text color to match "Expense Insights" (theme-aware TEXT_BLACK)
         style = ttk.Style()
-        style.configure("TLabelframe.Label", foreground=self.colors.TEXT_BLACK)  # Theme-aware
+        style.configure("TLabelframe.Label", foreground=self.colors.TEXT_BLACK)
         
-        # Configure LabelFrame border to match Expense Insights border color
-        # Use a custom style to ensure background matches parent frame (expense_list_frame)
-        # CRITICAL: Must match expense_list_frame background exactly (BG_SECONDARY in dark, BG_LIGHT_GRAY in light)
         is_dark = self.theme_manager.is_dark_mode() if self.theme_manager else False
         frame_bg = self.colors.BG_SECONDARY if is_dark else self.colors.BG_LIGHT_GRAY
-        border_color = self.colors.BG_DARK_GRAY  # Match Expense Insights border color
-        # Use custom style name to avoid global conflicts
-        # Ensure background matches parent expense_list_frame exactly
+        border_color = self.colors.BG_DARK_GRAY
         style.configure("QuickAdd.TLabelframe", 
                         background=frame_bg, 
                         bordercolor=border_color, 
                         borderwidth=1,
-                        relief='flat')  # Use flat relief to match parent frame
+                        relief='flat')
         style.configure("QuickAdd.TLabelframe.Label", 
                         background=frame_bg, 
                         foreground=self.colors.TEXT_BLACK)
-        # Apply the custom style to the frame
         self.frame.configure(style="QuickAdd.TLabelframe")
         
-        # Also configure the frame's internal background to ensure it matches
-        # This is needed because ttk.LabelFrame can have a different internal background
         style.map("QuickAdd.TLabelframe",
                  background=[('active', frame_bg), ('!active', frame_bg)])
         
-        # Configure ttk.Style for Quick Add entry fields (slightly lighter gray than Edit Expense dialog)
-        # Use BG_MEDIUM_GRAY (#3f3f46) in dark mode for a lighter gray, BG_WHITE in light mode
         entry_bg = self.colors.BG_MEDIUM_GRAY if is_dark else self.colors.BG_WHITE
-        entry_fg = self.colors.TEXT_BLACK  # Theme-aware: TEXT_BLACK in light, TEXT_PRIMARY in dark
+        entry_fg = self.colors.TEXT_BLACK
         style.configure('QuickAdd.TEntry',
                        fieldbackground=entry_bg,
                        foreground=entry_fg,
                        borderwidth=1,
                        relief='solid')
-        # Also configure style for Combobox (used by AutoCompleteEntry)
         style.configure('QuickAdd.TCombobox',
                        fieldbackground=entry_bg,
                        foreground=entry_fg,
                        borderwidth=1)
         
-        # Configure internal frames to match LabelFrame background
-        # This ensures all child frames use the same background color
         style.configure("QuickAdd.TFrame", background=frame_bg)
         
-        # Row 1: Amount and Description
         row1_container = ttk.Frame(self.frame, style="QuickAdd.TFrame")
-        row1_container.pack(fill=tk.X, pady=(0, 3))  # Reduced from 10 to 3 to bring date/button closer
+        row1_container.pack(fill=tk.X, pady=(0, 3))
         
-        # Amount field (left, reduced width)
         amount_frame = ttk.Frame(row1_container, style="QuickAdd.TFrame")
         amount_frame.pack(side=tk.LEFT, padx=(0, 15))
-        # Configure label style to match frame background
         style.configure("QuickAdd.TLabel", background=frame_bg, foreground=self.colors.TEXT_BLACK)
         ttk.Label(amount_frame, text="Amount ($):", font=config.Fonts.LABEL, style="QuickAdd.TLabel").pack(anchor=tk.W)
         self.amount_var = tk.StringVar()
@@ -214,7 +136,6 @@ class QuickAddHelper:
                                              style='QuickAdd.TEntry')  # Apply theme-aware styling
             self.description_entry.pack(fill=tk.X, pady=(2, 0))  # 2px gap between label and entry
         
-        # Bind Enter key for sequential field navigation
         def handle_amount_enter(event):
             """Enter in amount field moves to description"""
             self.description_entry.focus_set()
@@ -226,32 +147,23 @@ class QuickAddHelper:
             return "break"  # Prevent default behavior
         
         self.amount_entry.bind('<Return>', handle_amount_enter)
-        # Bind Enter key - for AutoCompleteEntry, bind to underlying entry widget
-        # CRITICAL: Bind with add='+' so widget's handler can run first if needed
         if hasattr(self.description_entry, 'entry'):
-            # AutoCompleteEntry - bind to underlying entry widget
             self.description_entry.entry.bind('<Return>', handle_description_enter, add='+')
         else:
-            # Plain Entry widget
             self.description_entry.bind('<Return>', handle_description_enter)
         
-        # Row 2: Date and Add button
         row2_container = ttk.Frame(self.frame, style="QuickAdd.TFrame")
-        row2_container.pack(fill=tk.X, pady=(0, 0))  # No bottom padding
+        row2_container.pack(fill=tk.X, pady=(0, 0))
         
-        # Date field (left) - using collapsible date combobox widget
         date_frame = ttk.Frame(row2_container, style="QuickAdd.TFrame")
         date_frame.pack(side=tk.LEFT, padx=(0, 15))
         ttk.Label(date_frame, text="Date:", font=config.Fonts.LABEL, style="QuickAdd.TLabel").pack(anchor=tk.W)
         
-        # Create collapsible date combobox (all 12 months with accordion behavior)
         self.date_combo = CollapsibleDateCombobox(date_frame)
-        self.date_combo.pack(pady=(2, 0))  # 2px gap between label and combobox
+        self.date_combo.pack(pady=(2, 0))
         
-        # Add Item button (right) - using CustomTkinter with green color
         button_frame = ttk.Frame(row2_container, style="QuickAdd.TFrame")
         button_frame.pack(side=tk.LEFT, padx=(15, 0))
-        # Add spacer to align button with entry fields - use same background as frame
         ttk.Label(button_frame, text=" ", font=config.Fonts.LABEL, style="QuickAdd.TLabel").pack()
         self.add_button = ctk.CTkButton(
             button_frame, 
@@ -269,11 +181,7 @@ class QuickAddHelper:
         return self.frame
     
     def add_expense(self):
-        """
-        Validate and add expense from form.
-        Handles validation, cross-month routing, status messages, and form clearing.
-        """
-        # Validate amount
+        """Validate and add expense from form. Handles cross-month routing and form clearing."""
         amount_str = self.amount_var.get().strip()
         if not amount_str:
             messagebox.showerror(config.Messages.TITLE_ERROR, config.Messages.AMOUNT_REQUIRED)
@@ -288,50 +196,36 @@ class QuickAddHelper:
             messagebox.showerror(config.Messages.TITLE_ERROR, config.Messages.AMOUNT_INVALID)
             return
         
-        # Validate description
-        # AutoCompleteEntry uses .get() method, plain Entry also uses .get()
         description = self.description_entry.get().strip()
         if not description:
             messagebox.showerror(config.Messages.TITLE_ERROR, config.Messages.DESCRIPTION_REQUIRED)
             return
         
-        # Get selected date from widget (returns YYYY-MM-DD format)
         selected_date = self.date_combo.get_selected_date()
         
         if not selected_date:
             messagebox.showerror(config.Messages.TITLE_ERROR, config.Messages.DATE_REQUIRED)
             return
         
-        # Create expense
         expense = ExpenseData(selected_date, amount, description)
         expense_dict = expense.to_dict()
         
-        # Add expense to correct month folder (handles cross-month routing)
         message = self.expense_tracker.add_expense_to_correct_month(expense_dict)
         
-        # Refresh the table FIRST if we're on the expense list page (before other callbacks)
-        # This ensures the table shows the new expense immediately
         if self.page_manager and self.table_manager:
             from page_manager import PageManager
             if self.page_manager.is_on_page(PageManager.PAGE_EXPENSE_LIST):
-                # Reload the table with updated expenses (includes the newly added expense)
-                # load_expenses already calls refresh_display internally
                 self.table_manager.load_expenses(self.expense_tracker.expenses)
                 
-                # Update metrics immediately after table refresh
                 if self.update_metrics_callback:
                     self.update_metrics_callback()
                 
-                # Sync the count tracker after programmatic table refresh
-                # This prevents the next user action from being misdetected
                 if self.count_tracker:
                     self.count_tracker[0] = len(self.expense_tracker.expenses)
         
-        # Call the update callback if provided (updates dashboard display)
         if self.on_add_callback:
             self.on_add_callback()
         
-        # Show status bar message if expense was saved to a different month
         if self.status_manager:
             if message:
                 # Message format: "💡 Past/Future expense saved to [Month] [Year] data folder ($amount)"
@@ -347,13 +241,7 @@ class QuickAddHelper:
         self.focus_amount()
     
     def set_enabled(self, enabled, tooltip_text=None):
-        """
-        Enable or disable Quick Add fields (for archive mode).
-        
-        Args:
-            enabled: True to enable, False to disable
-            tooltip_text: Optional tooltip text to display when disabled
-        """
+        """Enable or disable Quick Add fields (for archive mode)."""
         state = 'normal' if enabled else 'disabled'
         
         if self.amount_entry:
@@ -426,11 +314,6 @@ class QuickAddHelper:
             self.amount_entry.focus_set()
     
     def get_button(self):
-        """
-        Get reference to the Add button (for tooltip management).
-        
-        Returns:
-            ttk.Button: The Add Item button
-        """
+        """Get reference to the Add button (for tooltip management)."""
         return self.add_button
 

@@ -58,6 +58,7 @@ exports/
 # ====================
 # IDE and Editor
 # ====================
+.cursor/
 .vscode/
 .idea/
 *.swp
@@ -126,3 +127,9 @@ PoC_*.py
 # Internal Analysis Files
 # ====================
 _analysis_changelog_gaps.md
+
+# ====================
+# Internal Development Scripts (Not for Public Release)
+# ====================
+count_lines*.py
+verify_code_count.py

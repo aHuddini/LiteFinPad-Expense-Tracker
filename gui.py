@@ -25,14 +25,12 @@ class LiteFinPadGUI:
         self.root = root
         self.expense_tracker = expense_tracker
         
-        # Initialize theme manager FIRST (before styles)
         from theme_manager import ThemeManager
         self.theme_manager = ThemeManager()
         
         self.setup_window()
         self.setup_styles()
         
-        # Initialize managers (pass theme_manager for theme-aware colors)
         self.status_manager = StatusBarManager(self.root, theme_manager=self.theme_manager)
         self.page_manager = PageManager()
         self.tooltip_manager = TooltipManager()
@@ -40,70 +38,56 @@ class LiteFinPadGUI:
         self.create_widgets()
         
     def setup_window(self):
-        """Configure the main window with proper sizing and anti-flicker optimizations"""
-        # Read version dynamically from version.txt
+        """Configure main window with sizing and anti-flicker optimizations."""
         try:
             with open('version.txt', 'r') as f:
                 version = f.read().strip()
         except:
-            version = "Unknown"  # Fallback if version.txt is missing
+            version = "Unknown"
         
         self.root.title(f"LiteFinPad v{version} - Monthly Expense Tracker")
-        self.root.geometry(f"{config.Window.WIDTH}x{config.Window.HEIGHT}")  # Increased height for inline Quick Add section
+        self.root.geometry(f"{config.Window.WIDTH}x{config.Window.HEIGHT}")
         self.root.resizable(False, False)
         
-        # Use theme-aware background color - PoC shows root uses BG_MAIN in dark mode
         colors = self.theme_manager.get_colors()
-        # Root window: BG_MAIN (#1e1e1e) in dark mode, BG_WHITE in light mode (per PoC)
         root_bg = colors.BG_MAIN if self.theme_manager.is_dark_mode() else colors.BG_WHITE
         self.root.configure(bg=root_bg)
         
-        # Anti-flicker optimizations
-        self.root.update_idletasks()  # Force initial rendering
-        self.root.update()  # Complete any pending updates
+        self.root.update_idletasks()
+        self.root.update()
         
     def setup_styles(self):
-        """Configure modern Windows 11 styling and CustomTkinter theme"""
-        # Get theme-aware colors
+        """Configure Windows 11 styling and CustomTkinter theme."""
         colors = self.theme_manager.get_colors()
         archive_tint = self.theme_manager.get_archive_tint()
         
-        # Initialize CustomTkinter theme (already set by theme_manager, but ensure it's applied)
         ctk.set_appearance_mode("dark" if self.theme_manager.is_dark_mode() else "light")
         ctk.set_default_color_theme(config.CustomTkinterTheme.COLOR_THEME)
         
-        # Keep ttk styles for widgets not yet migrated to CustomTkinter
         self.style = ttk.Style()
         self.style.theme_use('clam')
         
-        # === NORMAL MODE STYLES ===
-        # Frame backgrounds
+        # Normal mode styles
         self.style.configure('TFrame', background=colors.BG_LIGHT_GRAY)
         self.style.configure('TLabelframe', background=colors.BG_LIGHT_GRAY)
         self.style.configure('TLabelframe.Label', background=colors.BG_LIGHT_GRAY)
-        
-        # Default TLabel - must explicitly match frame background for labels without specific styles
         self.style.configure('TLabel', background=colors.BG_LIGHT_GRAY)
         
-        # Specific label styles (explicit background to match frames)
         self.style.configure('Title.TLabel', font=config.Fonts.TITLE, foreground=colors.TEXT_BLACK, background=colors.BG_LIGHT_GRAY)
         self.style.configure('Month.TLabel', font=config.Fonts.SUBTITLE, foreground=colors.TEXT_BLACK, background=colors.BG_LIGHT_GRAY)
         self.style.configure('Count.TLabel', font=config.get_font(config.Fonts.SIZE_LARGE), foreground=colors.TEXT_BLACK, background=colors.BG_LIGHT_GRAY)
         self.style.configure('Total.TLabel', font=config.Fonts.HERO_TOTAL, foreground=colors.GREEN_PRIMARY, background=colors.BG_LIGHT_GRAY)
         self.style.configure('Rate.TLabel', font=config.get_font(config.Fonts.SIZE_MEDIUM), foreground=colors.TEXT_GRAY_DARK, background=colors.BG_LIGHT_GRAY)
-        # Analytics.TLabel - use theme-aware background
         analytics_bg = colors.BG_SECONDARY if self.theme_manager.is_dark_mode() else colors.BG_LIGHT_GRAY
         self.style.configure('Analytics.TLabel', font=config.get_font(config.Fonts.SIZE_NORMAL), foreground=colors.TEXT_GRAY_MEDIUM, background=analytics_bg)
         self.style.configure('Trend.TLabel', font=config.get_font(config.Fonts.SIZE_NORMAL), foreground=colors.PURPLE_PRIMARY, background=analytics_bg)
         
-        # === ARCHIVE MODE STYLES ===
-        # Archive mode uses theme-aware tint (light lavender for light mode, dark purple for dark mode)
+        # Archive mode styles
         self.style.configure('Archive.TFrame', background=archive_tint)
         self.style.configure('Archive.TLabelframe', background=archive_tint)
         self.style.configure('Archive.TLabelframe.Label', background=archive_tint)
         self.style.configure('Archive.TLabel', background=archive_tint)
         
-        # Archive label styles - use theme-aware colors
         self.style.configure('Archive.Title.TLabel', font=config.Fonts.TITLE, foreground=colors.TEXT_BLACK, background=archive_tint)
         self.style.configure('Archive.Month.TLabel', font=config.Fonts.SUBTITLE, foreground=colors.TEXT_BLACK, background=archive_tint)
         self.style.configure('Archive.Count.TLabel', font=config.get_font(config.Fonts.SIZE_LARGE), foreground=colors.TEXT_BLACK, background=archive_tint)
@@ -112,10 +96,7 @@ class LiteFinPadGUI:
         self.style.configure('Archive.Analytics.TLabel', font=config.get_font(config.Fonts.SIZE_NORMAL), foreground=colors.TEXT_GRAY_MEDIUM, background=archive_tint)
         self.style.configure('Archive.Trend.TLabel', font=config.get_font(config.Fonts.SIZE_NORMAL), foreground=colors.PURPLE_PRIMARY, background=archive_tint)
         
-        # Button styles
         self.style.configure('Modern.TButton', font=config.Fonts.BUTTON, anchor='center')
-        
-        # Configure Add Expense button style with green accent and proper centering
         self.style.configure('AddExpense.TButton', font=config.Fonts.BUTTON, 
                            background=config.Colors.GREEN_PRIMARY, foreground='#ffffff',
                            anchor='center')
@@ -123,41 +104,31 @@ class LiteFinPadGUI:
                       background=[('active', config.Colors.GREEN_HOVER), ('pressed', config.Colors.GREEN_PRESSED), ('disabled', '#cccccc')],
                       foreground=[('active', '#ffffff'), ('pressed', '#ffffff'), ('disabled', '#666666')])
         
-        # Configure toolbutton style for crisp emoji rendering
         self.style.configure('Toolbutton', font=config.get_font(config.Fonts.SIZE_MEDIUM))
         self.style.map('Toolbutton', 
                       background=[('active', config.Colors.BUTTON_ACTIVE_BG), ('pressed', config.Colors.BUTTON_PRESSED_BG)],
                       relief=[('pressed', 'sunken'), ('!pressed', 'flat')])
         
     def create_widgets(self):
-        """Create all GUI widgets with proper layout"""
-        # Get theme-aware colors
+        """Create all GUI widgets with proper layout."""
         colors = self.theme_manager.get_colors()
         
-        # Main container frame - this will hold both pages (using CTkFrame for consistency)
-        # Main container: BG_SECONDARY (#252526) in dark mode, BG_LIGHT_GRAY in light mode (per PoC)
         container_bg = colors.BG_SECONDARY if self.theme_manager.is_dark_mode() else colors.BG_LIGHT_GRAY
         self.main_container = ctk.CTkFrame(self.root, fg_color=container_bg)
         self.main_container.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Configure grid weights
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         self.main_container.columnconfigure(0, weight=1)
         self.main_container.rowconfigure(0, weight=1)
         
-        # Create main dashboard page
         self.create_main_page()
-        
-        # Create expense list page
         self.create_expense_list_page()
         
-        # Register pages with page manager
         self.page_manager.register_page(PageManager.PAGE_MAIN, self.main_frame)
         self.page_manager.register_page(PageManager.PAGE_EXPENSE_LIST, self.expense_list_frame)
         
-        # Initialize archive mode manager IMMEDIATELY after widgets (before any display updates)
-        # This ensures _is_archive_mode() and _get_context_date() always have a manager to delegate to
+        # Initialize archive mode manager immediately after widgets (before display updates)
         self.archive_mode_manager = ArchiveModeManager(
             root=self.root,
             expense_tracker=self.expense_tracker,
@@ -175,29 +146,21 @@ class LiteFinPadGUI:
             theme_manager=self.theme_manager
         )
         
-        # Create status bar (at bottom of window)
         status_bar_frame = self.status_manager.create_ui()
-        # Grid it but hide initially (shown only on expense list page)
         status_bar_frame.grid(row=1, column=0, sticky=(tk.W, tk.E))
         self.status_manager.set_visible(False)
         
     def create_main_page(self):
-        """Create the main dashboard page"""
-        # Get theme-aware colors
+        """Create the main dashboard page."""
         colors = self.theme_manager.get_colors()
         
-        # Main frame with standard padding (status bar hidden on main page) - using CTkFrame
-        # Use BG_LIGHT_GRAY in light mode, BG_SECONDARY in dark mode (matches PoC)
         frame_bg = colors.BG_SECONDARY if self.theme_manager.is_dark_mode() else colors.BG_LIGHT_GRAY
         self.main_frame = ctk.CTkFrame(self.main_container, fg_color=frame_bg)
-        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=15, pady=(8, 2))  # Further reduced top padding for maximum compactness
+        self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=15, pady=(8, 2))
         
-        # Configure grid weights
         self.main_frame.columnconfigure(0, weight=1)
         self.main_frame.columnconfigure(1, weight=1)
-        self.main_frame.rowconfigure(9, weight=1)  # Allow Recent Expenses to expand (row 9 - frame is now at row 9)
-        
-        # Build dashboard using DashboardPageBuilder
+        self.main_frame.rowconfigure(9, weight=1)
         callbacks = {
             'show_month_navigation_menu': self.show_month_navigation_menu,
             'show_about_dialog': self.show_about_dialog,
@@ -215,10 +178,7 @@ class LiteFinPadGUI:
             self.theme_manager
         )
         
-        # Build all sections and store widget references
         widgets = builder.build_all()
-        
-        # Store widget references as instance attributes for updates
         self.month_label = widgets['month_label']
         self.about_label = widgets['about_label']
         self.stay_on_top_var = widgets['stay_on_top_var']
@@ -240,33 +200,24 @@ class LiteFinPadGUI:
         self.recent_expense_2 = widgets['recent_expense_2']
         self.add_expense_btn = widgets['add_expense_btn']
         
-        # Update recent expenses display
         self.update_recent_expenses()
         
     
     def toggle_stay_on_top_visual(self):
-        """Toggle stay on top with visual feedback - SIMPLE version"""
-        # Toggle the state
+        """Toggle stay on top with visual feedback."""
         current_state = self.stay_on_top_var.get()
         new_state = not current_state
         self.stay_on_top_var.set(new_state)
         
-        # Get theme-aware colors
         colors = self.theme_manager.get_colors()
         
-        # Update label appearance - simple background color change
         if new_state:
-            # ON - use theme-aware button disabled color (darker in dark mode)
             self.stay_on_top_label.configure(fg_color=colors.BG_BUTTON_DISABLED)
-            # Update tooltip
             self.tooltip_manager.update(self.stay_on_top_label, "Stay on Top (ON)")
         else:
-            # OFF - match header background (transparent for CTkLabel)
             self.stay_on_top_label.configure(fg_color="transparent")
-            # Update tooltip
             self.tooltip_manager.update(self.stay_on_top_label, "Stay on Top (OFF)")
         
-        # Call the actual toggle function
         self.expense_tracker.window_manager.toggle_stay_on_top()
     
     # ==========================================
@@ -274,17 +225,14 @@ class LiteFinPadGUI:
     # ==========================================
     
     def show_about_dialog(self):
-        """Show About dialog with version and credits"""
-        # Get theme-aware colors
+        """Show About dialog with version and credits."""
         colors = self.theme_manager.get_colors()
         
-        # Read version
         try:
             version = open('version.txt').read().strip()
         except:
-            version = "Unknown"  # Fallback if version.txt is missing
+            version = "Unknown"
         
-        # Create dialog with theme-aware colors
         dialog = DialogHelper.create_dialog(
             self.root, "About LiteFinPad",
             config.Dialog.ABOUT_WIDTH, config.Dialog.ABOUT_HEIGHT,
@@ -369,14 +317,11 @@ class LiteFinPadGUI:
         DialogHelper.show_dialog(dialog)
     
     def show_budget_dialog(self, event=None):
-        """Show dialog to set monthly budget threshold"""
-        # Get theme-aware colors
+        """Show dialog to set monthly budget threshold."""
         colors = self.theme_manager.get_colors()
         
-        # Get current budget value
         current_budget = get_settings_manager().get('Budget', 'monthly_threshold', 0.0, value_type=float)
         
-        # Create dialog using DialogHelper with theme-aware colors
         dialog = DialogHelper.create_dialog(
             self.root,
             "Monthly Budget",
@@ -385,25 +330,15 @@ class LiteFinPadGUI:
             colors=colors
         )
         
-        # Set dialog background to match app theme
         dialog.configure(bg=colors.BG_LIGHT_GRAY)
         
-        # Setup dialog content (using CTkFrame) - using grid() geometry manager (CustomTkinter recommended)
-        # Note: CTkFrame doesn't support 'padding' parameter
-        # External padding: padx/pady in geometry manager
-        # Internal padding: CustomTkinter doesn't support ipadx/ipady like standard Tkinter
-        # Internal spacing is controlled via widget width/height parameters
         main_frame = ctk.CTkFrame(dialog, fg_color=colors.BG_LIGHT_GRAY, corner_radius=0)
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=15, pady=8)  # Standard padding - bottom padding on buttons_frame handles spacing
+        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=15, pady=8)
         
-        # Configure grid for responsive layout
         dialog.columnconfigure(0, weight=1)
         dialog.rowconfigure(0, weight=1)
-        main_frame.columnconfigure(0, weight=1)  # Center column expands
+        main_frame.columnconfigure(0, weight=1)
         
-        # Row 0: Instruction label (centered)
-        # Note: No explicit width/height - auto-sizes based on text content
-        # External padding: pady in geometry manager
         instruction_label = ctk.CTkLabel(
             main_frame,
             text="Set monthly spending budget",
@@ -411,10 +346,8 @@ class LiteFinPadGUI:
             text_color=colors.TEXT_BLACK,
             anchor="center"
         )
-        instruction_label.grid(row=0, column=0, pady=(0, 5), sticky="")  # Centered (no sticky)
+        instruction_label.grid(row=0, column=0, pady=(0, 5), sticky="")
         
-        # Row 1: Current budget display (centered)
-        # Note: No explicit width/height - auto-sizes based on text content (may be multi-line)
         current_budget_text = f"Current Threshold: ${current_budget:.2f}" if current_budget > 0 else "Current Threshold: Not Set"
         if current_budget == 0:
             current_budget_text += "\n(Click Here)"
@@ -460,20 +393,16 @@ class LiteFinPadGUI:
         validate_cmd = dialog.register(InputValidation.validate_amount)
         budget_entry.configure(validate='key', validatecommand=(validate_cmd, '%P'))
         
-        # Row 3: Error label (centered)
-        # Using CTkLabel with EXPLICIT height control to minimize space when empty
-        # Note: height=0 when empty, height=None when text present (auto-size)
         error_label = ctk.CTkLabel(
             main_frame,
             text="",
             font=config.get_font(config.Fonts.SIZE_SMALL),
             text_color=colors.RED_PRIMARY,
-            height=0,  # Explicit height in pixels when empty - collapses to minimal space
+            height=0,
             anchor="center"
         )
-        error_label.grid(row=3, column=0, pady=(5, 1), sticky="")  # Centered (no sticky)
+        error_label.grid(row=3, column=0, pady=(5, 1), sticky="")
         
-        # Row 4: Number pad (fills width) - Custom styled for Budget Dialog
         number_pad = NumberPadWidget(main_frame, budget_var)
         number_pad.grid(row=4, column=0, pady=(0, 0), sticky=(tk.W, tk.E))  # Fills width
         
@@ -486,28 +415,23 @@ class LiteFinPadGUI:
         style.configure("BudgetNumPad.TButton",
                        font=(config.Fonts.FAMILY, config.NumberPad.FONT_SIZE, config.NumberPad.FONT_WEIGHT),
                        padding=config.NumberPad.PADDING,
-                       background='#1E3A8A',  # Deep dark blue (similar to BLUE_DARK_NAVY but darker)
-                       foreground='#7DD3FC',  # Light cyan/blue for text (high contrast)
+                       background='#1E3A8A',
+                       foreground='#7DD3FC',
                        borderwidth=2,
-                       relief='raised')  # Raised relief for 3D effect
+                       relief='raised')
         
-        # Configure hover/pressed states with lighter blue shades
         style.map("BudgetNumPad.TButton",
-                 background=[('active', '#3B5FA0'),  # Lighter blue on hover (raised effect)
-                           ('pressed', '#2A4A90')],  # Slightly lighter when pressed (indented effect)
-                 foreground=[('active', '#A5E8FF'),  # Brighter cyan text on hover
-                            ('pressed', '#B5F0FF')])  # Even brighter on press
+                 background=[('active', '#3B5FA0'),
+                           ('pressed', '#2A4A90')],
+                 foreground=[('active', '#A5E8FF'),
+                            ('pressed', '#B5F0FF')])
         
-        # Apply the custom style to all numpad buttons
         for widget in number_pad.winfo_children():
             if isinstance(widget, ttk.Button):
                 widget.configure(style="BudgetNumPad.TButton")
         
-        # Row 5: Buttons frame (centered, contains two buttons side-by-side)
-        # Note: Using pack() inside buttons_frame to match original compact layout
-        # Bottom padding creates space below buttons to prevent cutoff by dialog window
         buttons_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        buttons_frame.grid(row=5, column=0, pady=(10, 10), sticky="")  # Standard padding - dialog height provides clearance
+        buttons_frame.grid(row=5, column=0, pady=(10, 10), sticky="")
         
         def save_budget():
             """Save budget - exactly like ExpenseAddDialog.add_expense()"""
@@ -604,7 +528,7 @@ class LiteFinPadGUI:
         DialogHelper.bind_escape_to_close(dialog)
     
     def _update_budget_display(self):
-        """Update budget display labels after budget change"""
+        """Update budget display labels after budget change."""
         try:
             # Re-read budget and recalculate using past expenses only (same as update_display)
             from datetime import datetime
@@ -668,7 +592,7 @@ class LiteFinPadGUI:
             log_error("Error in _update_budget_display", e)
     
     def show_month_navigation_menu(self, event):
-        """Show hierarchical month navigation menu (Year > Months)"""
+        """Show hierarchical month navigation menu (Year > Months)."""
         # Create navigation menu using month viewer
         menu = self.expense_tracker.month_viewer.create_navigation_menu(
             self.root,
@@ -682,12 +606,7 @@ class LiteFinPadGUI:
             menu.grab_release()
     
     def on_month_selected(self, month_key: str):
-        """
-        Callback when a month is selected from the dropdown
-        
-        Args:
-            month_key: Selected month in YYYY-MM format
-        """
+        """Callback when a month is selected from the dropdown (YYYY-MM format)."""
         # Switch to the selected month
         self.expense_tracker.switch_month(month_key)
     
@@ -696,10 +615,7 @@ class LiteFinPadGUI:
     # ==========================================
     
     def _is_archive_mode(self):
-        """
-        Helper method that delegates to archive_mode_manager if available.
-        During initialization, provides direct fallback logic.
-        """
+        """Check if in archive mode. Delegates to archive_mode_manager if available."""
         if hasattr(self, 'archive_mode_manager') and self.archive_mode_manager:
             return self.archive_mode_manager.is_archive_mode()
         else:
@@ -711,10 +627,7 @@ class LiteFinPadGUI:
             return viewed_month != current_month_key
     
     def _get_context_date(self):
-        """
-        Helper method that delegates to archive_mode_manager if available.
-        During initialization, provides direct fallback logic.
-        """
+        """Get context date for current or archive mode. Delegates to archive_mode_manager if available."""
         if hasattr(self, 'archive_mode_manager') and self.archive_mode_manager:
             return self.archive_mode_manager.get_context_date()
         else:
@@ -732,7 +645,7 @@ class LiteFinPadGUI:
     # ==========================================
         
     def update_display(self):
-        """Update all display elements"""
+        """Update all display elements."""
         from datetime import datetime
         from data_manager import ExpenseDataManager
         from error_logger import log_info
@@ -747,9 +660,9 @@ class LiteFinPadGUI:
             log_info(f"[UPDATE_DISPLAY] Archive mode: {expense_count} expenses, total=${monthly_total:.2f}")
         else:
             # Current mode: exclude future expenses
-        today = datetime.now().date()
-        past_expenses = [e for e in self.expense_tracker.expenses 
-                        if (dt := DateUtils.parse_date(e['date'])) and dt.date() <= today]
+            today = datetime.now().date()
+            past_expenses = [e for e in self.expense_tracker.expenses 
+                            if (dt := DateUtils.parse_date(e['date'])) and dt.date() <= today]
             monthly_total = ExpenseDataManager.calculate_monthly_total(past_expenses)
             expense_count = len(past_expenses)
             log_info(f"[UPDATE_DISPLAY] Current mode: {expense_count} expenses, total=${monthly_total:.2f}")
@@ -774,15 +687,13 @@ class LiteFinPadGUI:
         else:
             log_info(f"[UPDATE_DISPLAY] count_label not found or None")
         
-        # Get context date for analytics
         context_date = self._get_context_date()
         
-        # Update day/week progress
         current_day, total_days = ExpenseAnalytics.calculate_day_progress(context_date)
         current_week, total_weeks = ExpenseAnalytics.calculate_week_progress(context_date)
         if hasattr(self, 'day_progress_label') and self.day_progress_label:
             try:
-        self.day_progress_label.configure(text=f"{current_day} / {total_days}")
+                self.day_progress_label.configure(text=f"{current_day} / {total_days}")
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating day_progress_label: {e}")
         
@@ -795,12 +706,10 @@ class LiteFinPadGUI:
             week_display = f"{current_week:.1f} / {total_weeks}"
         if hasattr(self, 'week_progress_label') and self.week_progress_label:
             try:
-        self.week_progress_label.configure(text=week_display)
+                self.week_progress_label.configure(text=week_display)
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating week_progress_label: {e}")
         
-        # Update progress (averages in progress section)
-        # Use the correct expenses list based on mode
         expenses_for_analytics = expenses_to_use if self._is_archive_mode() else self.expense_tracker.expenses
         daily_avg, days_elapsed = ExpenseAnalytics.calculate_daily_average(
             expenses_for_analytics, context_date
@@ -812,9 +721,7 @@ class LiteFinPadGUI:
         self.daily_avg_label.configure(text=f"${daily_avg:.2f} /day")
         self.weekly_avg_label.configure(text=f"${weekly_avg:.2f} /week")
         
-        # Update analytics (weekly pace and previous month) with archive context
         context_date = self._get_context_date()
-        # Use the correct expenses list based on mode
         expenses_for_pace = expenses_to_use if self._is_archive_mode() else self.expense_tracker.expenses
         weekly_pace, pace_days = ExpenseAnalytics.calculate_weekly_pace(
             expenses_for_pace, context_date
@@ -835,17 +742,17 @@ class LiteFinPadGUI:
         
         if hasattr(self, 'pace_label') and self.pace_label:
             try:
-        self.pace_label.configure(text=f"${weekly_pace:.2f} /day")
+                self.pace_label.configure(text=f"${weekly_pace:.2f} /day")
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating pace_label: {e}")
         if hasattr(self, 'trend_label') and self.trend_label:
             try:
-        self.trend_label.configure(text=f"{trend_text} ")
+                self.trend_label.configure(text=f"{trend_text} ")
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating trend_label: {e}")
         if hasattr(self, 'trend_context_label') and self.trend_context_label:
             try:
-        self.trend_context_label.configure(text=trend_context)  # Update month name
+                self.trend_context_label.configure(text=trend_context)  # Update month name
             except Exception as e:
                 log_info(f"[UPDATE_DISPLAY] Error updating trend_context_label: {e}")
         
@@ -915,7 +822,7 @@ class LiteFinPadGUI:
         self.update_recent_expenses()
     
     def update_recent_expenses(self):
-        """Update the recent expenses display (excluding future expenses)"""
+        """Update recent expenses display (excluding future expenses)."""
         from datetime import datetime
         
         # Filter out future expenses and get last 2 (not 3)
@@ -941,7 +848,7 @@ class LiteFinPadGUI:
             expense_labels[i].configure(text="")
         
     def create_expense_list_page(self):
-        """Create the expense list page using ExpenseListPageBuilder"""
+        """Create the expense list page using ExpenseListPageBuilder."""
         # Create builder with all necessary callbacks
         builder = ExpenseListPageBuilder(
             parent_frame=self.main_container,
@@ -978,7 +885,7 @@ class LiteFinPadGUI:
     # ==========================================
         
     def update_expense_metrics(self):
-        """Update the expense metrics on the expense list page"""
+        """Update expense metrics on the expense list page."""
         from datetime import datetime
         from data_manager import ExpenseDataManager
         
@@ -1012,7 +919,7 @@ class LiteFinPadGUI:
     # ==========================================
     
     def show_expense_list_page(self):
-        """Show the expense list page"""
+        """Show the expense list page."""
         self.page_manager.show_expense_list_page(
             status_manager=self.status_manager,
             table_manager=self.table_manager,
@@ -1021,5 +928,5 @@ class LiteFinPadGUI:
         )
         
     def show_main_page(self):
-        """Show the main dashboard page"""
+        """Show the main dashboard page."""
         self.page_manager.show_main_page(status_manager=self.status_manager)

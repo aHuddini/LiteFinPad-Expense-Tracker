@@ -1,8 +1,4 @@
-"""
-NumberPad Widget for LiteFinPad.
-
-Provides a reusable financial number pad for amount entry.
-"""
+"""Reusable financial number pad widget for amount entry."""
 
 import tkinter as tk
 from tkinter import ttk
@@ -10,32 +6,10 @@ import config
 
 
 class NumberPadWidget(ttk.LabelFrame):
-    """
-    Financial number pad widget for amount entry.
-    
-    Features:
-    - 3x4 button grid (0-9, decimal point, clear)
-    - Smart decimal handling (only one decimal point allowed)
-    - Automatic "0." insertion when decimal pressed on empty field
-    - Max length validation
-    - Decimal places limit (default: 2)
-    - Clean, compact styling
-    
-    Usage:
-        amount_var = tk.StringVar()
-        number_pad = NumberPadWidget(parent, amount_var)
-        number_pad.pack(fill=tk.X, pady=(0, 10))
-    
-    Args:
-        parent: Parent widget
-        string_var: tk.StringVar to bind to
-        max_length: Maximum characters allowed (default: 10 for 9999999.99)
-        decimal_places: Maximum decimal places (default: 2)
-        **kwargs: Additional arguments passed to ttk.LabelFrame
-    """
+    """Financial number pad widget with 3x4 button grid (0-9, decimal, clear)."""
     
     def __init__(self, parent, string_var, max_length=config.NumberPad.MAX_AMOUNT_LENGTH, decimal_places=2, **kwargs):
-        """Initialize the NumberPad widget."""
+        """Initialize NumberPad widget."""
         # Set default kwargs if not provided
         if 'text' not in kwargs:
             kwargs['text'] = ""
@@ -51,7 +25,7 @@ class NumberPadWidget(ttk.LabelFrame):
         self._create_ui()
     
     def _create_ui(self):
-        """Create the number pad UI."""
+        """Create number pad UI."""
         # Configure button style
         style = ttk.Style()
         style.configure("NumPad.TButton", 
@@ -95,12 +69,7 @@ class NumberPadWidget(ttk.LabelFrame):
                 btn.grid(row=row_idx, column=col_idx, padx=config.NumberPad.GRID_SPACING, pady=config.NumberPad.GRID_SPACING, sticky=(tk.W, tk.E))
     
     def _on_button_click(self, value):
-        """
-        Handle number pad button clicks.
-        
-        Args:
-            value: Button value ('0'-'9' or '.')
-        """
+        """Handle number pad button clicks ('0'-'9' or '.')."""
         current = self.string_var.get()
         
         # Handle decimal point
@@ -132,19 +101,11 @@ class NumberPadWidget(ttk.LabelFrame):
             self.string_var.set(current + value)
     
     def _on_clear(self):
-        """Clear the linked variable."""
+        """Clear linked variable."""
         self.string_var.set('')
     
     def configure_style(self, **style_options):
-        """
-        Configure the button style.
-        
-        Allows external customization of button appearance.
-        
-        Args:
-            **style_options: Style configuration options
-                            (e.g., font=("Arial", 14), padding=(10, 12))
-        """
+        """Configure button style for external customization."""
         style = ttk.Style()
         style.configure("NumPad.TButton", **style_options)
 

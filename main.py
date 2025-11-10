@@ -30,15 +30,7 @@ from description_autocomplete import DescriptionHistory
 from widgets import AutoCompleteEntry
 
 def _configure_process_dpi_awareness():
-    """
-    Configure process-level DPI awareness for crisp text on high-DPI displays.
-    
-    Tries multiple methods in order of preference for Windows version compatibility.
-    This prevents blurry text on high-resolution displays (4K, etc.).
-    
-    Returns:
-        bool: True if any method succeeded, False if all failed
-    """
+    """Configure process-level DPI awareness for crisp text on high-DPI displays."""
     dpi_methods = [
         # (library, method_name, arguments, description)
         (ctypes.windll.shcore, 'SetProcessDpiAwareness', (1,), 'Windows 8.1+'),
@@ -55,96 +47,70 @@ def _configure_process_dpi_awareness():
             # Method not available on this Windows version
             continue
     
-    # None worked - log for debugging but continue (DPI awareness is optional UI polish)
+    # DPI awareness is optional, continue without it
     log_debug("Process DPI awareness not configured (older Windows or unavailable)")
     return False
 
-# Configure DPI awareness at module level (before creating windows)
 _configure_process_dpi_awareness()
-
-# Setup debug logger
 
 
 
 class ExpenseTracker:
     def __init__(self):
-        # Initialize error logging
         error_logger.log_application_start()
         
-        # Initialize month viewer for navigation and archive mode
         self.month_viewer = MonthViewer(data_directory=".")
         
-        # Use month viewer for month tracking
         self.current_month = self.month_viewer.actual_month
         self.viewed_month = self.month_viewer.viewed_month
         self.viewing_mode = self.month_viewer.viewing_mode
         
-        # Note: current_month is already in YYYY-MM format from month_viewer
         self.data_folder = f"data_{self.current_month}"
         self.expenses_file = os.path.join(self.data_folder, "expenses.json")
         self.calculations_file = os.path.join(self.data_folder, "calculations.json")
         self.expenses = []
         self.monthly_total = 0.0
-        self.current_page = "main"  # Track current page
-        self.open_dialogs = []  # Track open dialogs for proper cleanup
-        self.gui_queue = queue.Queue()  # Thread-safe queue for GUI operations from background threads
-        self._shutting_down = False  # Guard flag to prevent duplicate shutdown calls
+        self.current_page = "main"
+        self.open_dialogs = []
+        self.gui_queue = queue.Queue()
+        self._shutting_down = False
         
-        # Initialize description history for auto-complete
         self.description_history = DescriptionHistory()
         
         self.load_data()
         
-        # Create main window
         self.root = tk.Tk()
         
-        # Remove taskbar icon - make this a pure system tray application
         self.root.attributes('-toolwindow', True)
         
-        # Anti-flicker optimizations
-        # Note: Background color will be set by GUI setup_window() with theme-aware colors
-        self.root.attributes('-alpha', 1.0)  # Ensure full opacity initially
+        self.root.attributes('-alpha', 1.0)
         
-        # Configure window close behavior - X button should quit the app
         self.root.protocol("WM_DELETE_WINDOW", self.quit_app)
         
-        # Configure DPI scaling for crisp text rendering
         self.configure_dpi_scaling()
         
-        # Create window animator
         self.animator = create_window_animator(self.root)
         
-        # Create window manager (gui will be set after GUI initialization)
         self.window_manager = WindowManager(
             root=self.root,
             animator=self.animator,
-            gui=None,  # Will be set after GUI is created
+            gui=None,
             close_dialogs_callback=self.close_all_dialogs,
             quit_callback=self.quit_app
         )
         
-        # Initialize GUI using separated GUI class
         self.gui = LiteFinPadGUI(self.root, self)
         
-        # Set GUI reference in window manager now that GUI is created
         self.window_manager.gui = self.gui
         
-        # Create tray icon manager and start tray icon
         self.tray_icon_manager = TrayIconManager(self)
         self.tray_icon_manager.create()
         
-        # Hide window initially - use tray icon to access
         self.root.withdraw()
         
     def configure_dpi_scaling(self):
-        """
-        Configure Tkinter DPI scaling for crisp text on high-DPI displays.
-        
-        Queries the window's DPI and sets Tkinter's scaling factor accordingly.
-        Falls back to default scaling if detection fails.
-        """
+        """Configure Tkinter DPI scaling for crisp text on high-DPI displays."""
         try:
-            # Get window handle and query DPI
             window_handle = self.root.winfo_id()
             dpi = ctypes.windll.user32.GetDpiForWindow(window_handle)
             
@@ -154,7 +120,6 @@ class ExpenseTracker:
                 self.root.tk.call('tk', 'scaling', 1.0)
                 return
             
-            # Calculate scaling factor (96 DPI is standard/100% scaling)
             scaling_factor = dpi / 96.0
             
             # Apply scaling to Tkinter
@@ -172,7 +137,7 @@ class ExpenseTracker:
             self.root.tk.call('tk', 'scaling', 1.0)
         
     def get_icon_path(self):
-        """Get the correct icon path for both development and PyInstaller builds"""
+        """Get icon path for both development and PyInstaller builds."""
         try:
             # PyInstaller detection: Standard pattern for detecting bundled executables.
             # _MEIPASS is the documented PyInstaller attribute that contains the temp
@@ -218,14 +183,7 @@ class ExpenseTracker:
         return None
         
     def quit_app(self):
-        """
-        Quit the application with proper cleanup.
-        
-        Ensures all resources are cleaned up in the correct order:
-        1. Close any open dialogs
-        2. Stop the tray icon
-        3. Destroy the GUI window
-        """
+        """Quit the application with proper cleanup (close dialogs, stop tray icon, destroy window)."""
         # Guard against duplicate calls (e.g., from WM_DELETE_WINDOW protocol during destroy)
         if self._shutting_down:
             return
@@ -257,20 +215,13 @@ class ExpenseTracker:
             sys.exit(1)
                 
     def load_data(self, month_key: str = None):
-        """
-        Load expense data from JSON file
-        
-        Args:
-            month_key: Month to load (YYYY-MM format). If None, uses viewed_month.
-        """
+        """Load expense data from JSON file. Uses viewed_month if month_key is None."""
         if month_key is None:
             month_key = self.viewed_month
         
-        # Get paths for the target month
         data_folder = f"data_{month_key}"
         expenses_file = os.path.join(data_folder, "expenses.json")
         
-        # Load expenses
         self.expenses, self.monthly_total = ExpenseDataManager.load_expenses(
             expenses_file,
             data_folder,
@@ -278,19 +229,11 @@ class ExpenseTracker:
         )
     
     def switch_month(self, month_key: str):
-        """
-        Switch to viewing a different month
-        
-        Args:
-            month_key: Month to switch to (YYYY-MM format)
-        """
-        # Update month viewer state
+        """Switch to viewing a different month (YYYY-MM format)."""
         self.viewed_month, self.viewing_mode = self.month_viewer.switch_to_month(month_key)
         
-        # Load data for the new month
         self.load_data(month_key)
         
-        # Update GUI to reflect new mode
         self.gui.archive_mode_manager.refresh_ui()
         
         # Log the switch
@@ -308,27 +251,16 @@ class ExpenseTracker:
         self._save_calculations(self.calculations_file, self.current_month, self.monthly_total)
     
     def add_expense_to_correct_month(self, expense_dict):
-        """
-        Add expense to the correct month's data folder based on expense date.
-        If the expense belongs to a previous month, it will be saved to that month's folder.
-        
-        Args:
-            expense_dict (dict): Expense dictionary with 'date', 'amount', 'description'
-            
-        Returns:
-            str: Message to display to user about where the expense was saved
-        """
+        """Add expense to the correct month's data folder based on expense date."""
         from datetime import datetime
         from tkinter import messagebox
         
-        # Parse the expense date to determine target month
         expense_date = DateUtils.parse_date(expense_dict['date'])
         if not expense_date:
             return "Error: Invalid expense date"
         
         target_month = expense_date.strftime("%Y-%m")  # e.g., "2025-09"
         
-        # Check if expense belongs to current month, past month, or future month
         if target_month == self.current_month:
             # Add to current month (existing behavior)
             self.expenses.append(expense_dict)
@@ -375,15 +307,7 @@ class ExpenseTracker:
                 return f"💡 Future expense saved to {month_name} data folder (${expense_dict['amount']:.2f})"
     
     def _save_calculations(self, calculations_file, month, total):
-        """
-        Save calculations metadata for a given month.
-        This enables viewing previous months' data in the future.
-        
-        Args:
-            calculations_file (str): Path to calculations.json file
-            month (str): Month string (YYYY-MM)
-            total (float): Monthly total
-        """
+        """Save calculations metadata for a given month to enable future viewing."""
         from datetime import datetime
         import json
         
@@ -433,18 +357,12 @@ class ExpenseTracker:
         dialog.dialog.bind('<Destroy>', lambda e: on_dialog_destroy())
     
     def show_quick_add_dialog(self):
-        """
-        Show quick add expense dialog without opening main window.
-        Thread-safe: Posts request to GUI queue for main thread execution.
-        """
+        """Show quick add expense dialog. Thread-safe: posts to GUI queue for main thread execution."""
         log_info("[DIALOG] Quick Add requested - posting to GUI queue")
         self.gui_queue.put(self._show_quick_add_dialog_main_thread)
     
     def _show_quick_add_dialog_main_thread(self):
-        """
-        PRIVATE: Create Quick Add dialog in main thread.
-        Called via GUI queue from show_quick_add_dialog().
-        """
+        """Create Quick Add dialog in main thread. Called via GUI queue."""
         try:
             log_info(f"[DIALOG] === Quick Add Dialog Creation Started at {time.time():.3f} ===")
             
@@ -525,7 +443,6 @@ class ExpenseTracker:
                                      foreground=entry_fg,
                                      borderwidth=1,
                                      relief='solid')
-            # Also configure style for Combobox (used by AutoCompleteEntry)
             quick_add_style.configure('QuickAdd.TCombobox',
                                      fieldbackground=entry_bg,
                                      foreground=entry_fg,
@@ -551,7 +468,6 @@ class ExpenseTracker:
             )
             month_label.pack(anchor=tk.CENTER)
             
-            # Configure style for total label to match dialog background
             quick_add_style.configure('QuickAdd.Total.TLabel',
                                     font=config.get_font(config.Fonts.SIZE_SMALL + 1, 'bold'),
                                     foreground=colors.GREEN_PRIMARY,
@@ -584,7 +500,6 @@ class ExpenseTracker:
             amount_entry.pack(fill=tk.X, pady=(5, 0))
             amount_entry.focus_set()
             
-            # Configure style for numpad LabelFrame to match dialog background
             numpad_style = ttk.Style()
             numpad_style.configure('NumPad.TLabelframe', 
                                    background=dialog_bg,
@@ -729,18 +644,13 @@ class ExpenseTracker:
                 return "break"
             
             amount_entry.bind('<Return>', handle_amount_enter)
-            # CRITICAL: Use add='+' to preserve widget's handler
-            # Handlers run in reverse order, so this runs first, then widget's handler
-            # If dropdown visible, widget returns "break" preventing this handler's form submission
             desc_entry.entry.bind('<Return>', handle_description_enter, add='+')
             dialog.bind('<Escape>', lambda e: on_cancel())
             
-            # Show the dialog now that it's fully configured and positioned
             log_info("[DIALOG] Calling deiconify() to show dialog")
             dialog.deiconify()
             log_info("[DIALOG] Dialog is now visible")
             
-            # Set window attributes after showing
             if self.window_manager.is_hidden:
                 log_info("[DIALOG] Main window is hidden, using grab_set()")
                 dialog.grab_set()
@@ -765,10 +675,7 @@ class ExpenseTracker:
             def check_if_should_close():
                 if not dialog.winfo_exists():
                     return
-                # Tkinter workaround: Track messagebox state to prevent recursive calls.
-                # Tkinter doesn't provide native state tracking for messageboxes, and
-                # showing a messagebox while another is open can cause UI freezes or
-                # unexpected behavior. This custom flag is the standard workaround.
+                # Track messagebox state to prevent recursive calls
                 if getattr(dialog, '_showing_messagebox', False):
                     return
                 focused = dialog.focus_get()
@@ -832,7 +739,6 @@ class ExpenseTracker:
             # Get theme_manager from gui if available
             theme_manager = getattr(self.gui, 'theme_manager', None) if hasattr(self, 'gui') else None
             # Use the new export system with dialog and status bar callback
-            # Note: status_manager is guaranteed to exist after GUI initialization
             status_callback = self.gui.status_manager.show
             export_expenses(self.expenses, self.current_month, status_callback, theme_manager=theme_manager)
         except Exception as e:
@@ -843,7 +749,6 @@ class ExpenseTracker:
         """Show file picker and import expense data from JSON backup"""
         try:
             # Use the import system with status bar callback
-            # Note: status_manager is guaranteed to exist after GUI initialization
             status_callback = self.gui.status_manager.show
             import_expense_backup(self, status_callback=status_callback)
         except Exception as e:
@@ -885,23 +790,14 @@ class ExpenseTracker:
             if hasattr(self, 'root') and self.root.winfo_exists():
                 self.root.after(config.Threading.GUI_QUEUE_POLL_MS, self._process_gui_queue)
         except (tk.TclError, AttributeError) as e:
-            # Expected during shutdown: Tkinter widgets destroyed, root window closed.
-            # TclError: Tkinter already destroyed
-            # AttributeError: root object deleted
             log_debug(f"GUI queue stopped (shutdown): {e}")
         except RuntimeError as e:
-            # Tkinter main loop ended
             log_debug(f"GUI queue stopped (main loop ended): {e}")
         except Exception as e:
-            # Unexpected error - log for debugging
             log_warning(f"Unexpected error in GUI queue: {e}")
         
     def run(self):
         """Run the application"""
-        # Start main GUI
-        # Note: Protocol handler is already set up in __init__ to quit_app
-        
-        # Start GUI queue processor for thread-safe operations
         self._process_gui_queue()
         
         try:

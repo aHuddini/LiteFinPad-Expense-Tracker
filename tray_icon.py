@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Simple and minimalist system tray icon implementation for LiteFinPad
-"""
+"""System tray icon implementation for LiteFinPad."""
 
 import win32gui
 import win32con
@@ -40,22 +38,7 @@ ID_QUIT = 1003
 
 
 def win32_safe(default_return=None, operation_name=""):
-    """
-    Decorator for Win32 API calls that handles common Win32 exceptions.
-    
-    Catches Win32-specific exceptions (WindowsError, OSError, AttributeError)
-    and logs them appropriately, returning a default value instead of crashing.
-    
-    Args:
-        default_return: Value to return on error (default: None)
-        operation_name: Name of operation for logging (default: function name)
-    
-    Example:
-        @win32_safe(default_return=False, operation_name="add to tray")
-        def add_to_tray(self):
-            # Win32 API calls here
-            return True
-    """
+    """Decorator for Win32 API calls that handles exceptions and returns default value."""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -93,12 +76,7 @@ class NOTIFYICONDATA(ctypes.Structure):
     ]
 
 class TrayIcon:
-    """
-    Simple system tray icon implementation
-    - Left single-click: Toggle application window (show/hide)
-    - Left double-click: Quick add expense dialog
-    - Right click: Context menu with Open, Quick Add, and Quit options
-    """
+    """System tray icon with left-click toggle, double-click quick add, and right-click context menu."""
     
     def __init__(self, tooltip="LiteFinPad", toggle_callback=None, quick_add_callback=None, quit_callback=None):
         self.tooltip = tooltip
@@ -111,17 +89,15 @@ class TrayIcon:
         self.thread = None
         self.callback_message = WM_USER + 20
         
-        # Track double-click to suppress the first single-click in a double-click sequence
         self.last_click_time = 0
-        self.double_click_window = 0.11  # 110ms - balanced for reliability and responsiveness
+        self.double_click_window = 0.11
         self.pending_single_click_timer = None
         self.double_click_detected = False
         
-        # Create window procedure that will handle messages
         self.wndproc = self._create_window_proc()
     
     def _create_window_proc(self):
-        """Create a window procedure to handle messages"""
+        """Create window procedure to handle tray icon messages."""
         # Store reference to self  
         tray_instance = self
         
@@ -167,7 +143,7 @@ class TrayIcon:
         
     @win32_safe(default_return=False, operation_name="create window")
     def create_window(self):
-        """Create a hidden window for the tray icon"""
+        """Create hidden window for the tray icon."""
         log_debug("Creating tray window...")
         
         # Use the correct window class - try different approaches
@@ -209,7 +185,6 @@ class TrayIcon:
             log_warning(f"Unexpected error registering window class: {e}")
             window_class = "STATIC"
         
-        # Create the window
         self.hwnd = win32gui.CreateWindow(
             window_class,
             "LiteFinPadTray",
@@ -228,7 +203,7 @@ class TrayIcon:
         return True
     
     def load_icon(self):
-        """Load the custom icon from icon.ico file"""
+        """Load custom icon from icon.ico file, fallback to Windows default icon."""
         try:
             log_debug("Loading custom icon...")
             
@@ -291,14 +266,13 @@ class TrayIcon:
     
     @win32_safe(default_return=False, operation_name="add to tray")
     def add_to_tray(self):
-        """Add icon to system tray"""
+        """Add icon to system tray."""
         if not self.hwnd or not self.icon_handle:
             log_error("Cannot add to tray: missing hwnd or icon_handle")
             return False
             
         log_debug(f"Adding icon to system tray... hwnd={self.hwnd}, icon={self.icon_handle}")
         
-        # Create NOTIFYICONDATA structure using ctypes
         nid = NOTIFYICONDATA()
         nid.cbSize = ctypes.sizeof(NOTIFYICONDATA)
         nid.hWnd = self.hwnd
@@ -322,22 +296,19 @@ class TrayIcon:
             log_info("Icon added to system tray successfully")
             return True
         else:
-            # Get last error
             error_code = ctypes.get_last_error()
             log_error(f"Failed to add icon to system tray - Shell_NotifyIconW returned {result}, error code: {error_code}")
             return False
     
     @win32_safe(default_return=False, operation_name="update tooltip")
     def update_tooltip(self, new_tooltip):
-        """Update the tooltip text for the tray icon"""
+        """Update tooltip text for the tray icon."""
         if not self.hwnd or not self.icon_handle:
             log_error("Cannot update tooltip: missing hwnd or icon_handle")
             return False
         
-        # Update the stored tooltip
         self.tooltip = new_tooltip
         
-        # Create NOTIFYICONDATA structure for modification
         nid = NOTIFYICONDATA()
         nid.cbSize = ctypes.sizeof(NOTIFYICONDATA)
         nid.hWnd = self.hwnd
@@ -358,7 +329,7 @@ class TrayIcon:
     
     @win32_safe(default_return=None, operation_name="remove from tray")
     def remove_from_tray(self):
-        """Remove icon from system tray"""
+        """Remove icon from system tray."""
         if not self.hwnd:
             return
             
@@ -373,7 +344,7 @@ class TrayIcon:
         log_debug("Icon removed from system tray")
     
     def message_loop(self):
-        """Main message processing loop - processes all messages to catch close events"""
+        """Main message processing loop for tray icon events."""
         try:
             log_info("Starting tray icon message loop...")
             log_debug(f"Window handle: {self.hwnd}")
@@ -411,7 +382,7 @@ class TrayIcon:
             log_info("Message loop ended")
     
     def on_left_click(self):
-        """Handle left click on tray icon - toggles window (delayed to detect double-click)"""
+        """Handle left click on tray icon - toggles window (delayed to detect double-click)."""
         import threading
         
         log_debug(f"[TRAY] Left click detected (double-click flag: {self.double_click_detected})")
@@ -440,21 +411,9 @@ class TrayIcon:
         self.pending_single_click_timer.start()
     
     def create_context_menu(self):
-        """
-        Create Win32 popup menu with app actions.
-        
-        Menu structure (top to bottom):
-        - Open LiteFinPad
-        - Quick Add Expense
-        - (separator)
-        - Quit
-        
-        Returns:
-            Handle to the created popup menu
-        """
+        """Create Win32 popup menu with Open, Quick Add, and Quit options."""
         menu = win32gui.CreatePopupMenu()
         
-        # Add menu items in natural order using AppendMenu (adds to end)
         win32gui.AppendMenu(menu, MF_STRING, ID_OPEN, "Open LiteFinPad")
         win32gui.AppendMenu(menu, MF_STRING, ID_QUICK_ADD, "Quick Add Expense")
         win32gui.AppendMenu(menu, MF_SEPARATOR, 0, "")  # Separator requires empty string, not None
@@ -465,22 +424,14 @@ class TrayIcon:
     
     @win32_safe(default_return=None, operation_name="show context menu")
     def show_context_menu(self):
-        """
-        Display context menu at cursor position.
-        Thread-safe: Can be called from Win32 message loop thread.
-        """
-        # Get current cursor position
+        """Display context menu at cursor position (thread-safe)."""
         pos = win32gui.GetCursorPos()
         log_debug(f"[TRAY] Showing context menu at position {pos}")
         
-        # Create the menu
         menu = self.create_context_menu()
         
-        # Set foreground window (required for menu to dismiss properly)
         win32gui.SetForegroundWindow(self.hwnd)
         
-        # Display menu and get selected command ID
-        # TPM_RETURNCMD makes TrackPopupMenu return the selected command ID
         cmd = win32gui.TrackPopupMenu(
             menu,
             TPM_LEFTALIGN | TPM_RETURNCMD,
@@ -490,7 +441,6 @@ class TrayIcon:
             None
         )
         
-        # Handle user selection
         if cmd == ID_OPEN:
             log_info("[TRAY MENU] Open LiteFinPad selected")
             if self.toggle_callback:
@@ -511,13 +461,13 @@ class TrayIcon:
         log_debug("[TRAY] Context menu destroyed")
     
     def on_right_click(self):
-        """Handle right click on tray icon - show context menu"""
+        """Handle right click on tray icon - show context menu."""
         log_info("[TRAY] Right-click: showing context menu")
         # Show Win32 context menu (thread-safe)
         self.show_context_menu()
     
     def on_double_click(self):
-        """Handle double click on tray icon - opens quick add dialog"""
+        """Handle double click on tray icon - opens quick add dialog."""
         log_info(f"[TRAY] Double-click: opening quick add")
         
         # Cancel any pending single-click action
@@ -535,26 +485,22 @@ class TrayIcon:
                 log_error(f"[TRAY] ERROR in quick_add callback: {e}", e)
     
     def start(self):
-        """Start the tray icon"""
+        """Start the tray icon."""
         try:
             log_info("Starting tray icon...")
             
-            # Create window
             if not self.create_window():
                 log_error("Failed to create window")
                 return False
             
-            # Load icon
             if not self.load_icon():
                 log_error("Failed to load icon")
                 return False
             
-            # Add to tray
             if not self.add_to_tray():
                 log_error("Failed to add to tray")
                 return False
             
-            # Start message loop in separate thread
             self.thread = threading.Thread(target=self.message_loop, daemon=True)
             self.thread.start()
             
@@ -566,15 +512,13 @@ class TrayIcon:
             return False
     
     def stop(self):
-        """Stop the tray icon"""
+        """Stop the tray icon."""
         try:
             log_debug("Stopping tray icon...")
             self.running = False
             
-            # Remove from tray
             self.remove_from_tray()
             
-            # Destroy window
             if self.hwnd:
                 win32gui.DestroyWindow(self.hwnd)
                 self.hwnd = None
@@ -585,23 +529,12 @@ class TrayIcon:
             log_error("Error stopping tray icon", e)
     
     def is_running(self):
-        """Check if tray icon is running"""
+        """Check if tray icon is running."""
         return self.running and self.thread and self.thread.is_alive()
 
 
 def create_simple_tray_icon(toggle_callback, quick_add_callback=None, quit_callback=None, tooltip="LiteFinPad"):
-    """
-    Create a simple tray icon with minimal configuration
-    
-    Args:
-        toggle_callback: Function to call when tray icon is clicked
-        quick_add_callback: Function to call when tray icon is double-clicked (optional)
-        quit_callback: Function to call when quitting (optional)
-        tooltip: Tooltip text for the tray icon
-    
-    Returns:
-        TrayIcon instance
-    """
+    """Create a simple tray icon with minimal configuration."""
     tray = TrayIcon(tooltip, toggle_callback, quick_add_callback, quit_callback)
     return tray
 
@@ -615,7 +548,6 @@ if __name__ == "__main__":
         print("Quit app called!")
         sys.exit(0)
     
-    # Create and start tray icon
     tray = create_simple_tray_icon(toggle_app, quit_app, "LiteFinPad Test")
     
     if tray.start():

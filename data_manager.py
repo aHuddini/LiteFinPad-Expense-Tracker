@@ -1,9 +1,4 @@
-"""
-Data Manager Module
-
-Handles all expense data persistence operations (loading/saving).
-All functions are pure data operations with no UI dependencies.
-"""
+"""Expense data persistence operations (loading/saving). All functions are pure with no UI dependencies."""
 
 import json
 import os
@@ -14,34 +9,11 @@ import config
 
 
 class ExpenseDataManager:
-    """
-    Pure data manager class for expense persistence.
-    All methods are static - they don't modify state, just handle file I/O
-    and data transformation. This separates data persistence from UI logic.
-    """
+    """Pure data manager for expense persistence. All methods are static."""
     
     @staticmethod
     def load_expenses(expenses_file, data_folder, current_month):
-        """
-        Load expense data from JSON file.
-        
-        Args:
-            expenses_file (str): Path to expenses JSON file
-            data_folder (str): Path to data folder
-            current_month (str): Current month string (YYYY-MM)
-            
-        Returns:
-            tuple: (expenses_list, monthly_total)
-                - expenses_list: List of expense dictionaries
-                - monthly_total: Float, sum of non-future expenses
-                
-        Example:
-            expenses, total = ExpenseDataManager.load_expenses(
-                "data_2025-10/expenses.json",
-                "data_2025-10",
-                "2025-10"
-            )
-        """
+        """Load expense data from JSON file. Returns (expenses_list, monthly_total)."""
         log_info(f"Loading data from: {expenses_file}")
         log_info(f"Data folder: {data_folder}")
         log_info(f"Current month: {current_month}")
@@ -52,7 +24,6 @@ class ExpenseDataManager:
                     data = json.load(f)
                     expenses = data.get('expenses', [])
                     
-                    # Calculate monthly_total from expenses (excluding future dates)
                     monthly_total = ExpenseDataManager.calculate_monthly_total(expenses)
                     
                     log_data_load("expenses", len(expenses), expenses_file)
@@ -61,26 +32,21 @@ class ExpenseDataManager:
                     return expenses, monthly_total
                     
             except FileNotFoundError:
-                # File was deleted between exists() check and open()
                 log_warning(f"Expenses file not found (deleted after check): {expenses_file}")
                 return [], 0.0
             except json.JSONDecodeError as e:
-                # Invalid JSON format
                 log_error(f"Invalid JSON in {expenses_file}: {e}", e)
                 print(f"{config.Messages.ERROR_LOADING_DATA}: Invalid JSON format - {e}")
                 return [], 0.0
             except PermissionError as e:
-                # Permission denied reading file
                 log_error(f"Permission denied reading {expenses_file}: {e}", e)
                 print(f"{config.Messages.ERROR_LOADING_DATA}: Permission denied - {e}")
                 return [], 0.0
             except OSError as e:
-                # Other OS-level errors (disk full, network issues, etc.)
                 log_error(f"OS error reading {expenses_file}: {e}", e)
                 print(f"{config.Messages.ERROR_LOADING_DATA}: System error - {e}")
                 return [], 0.0
             except Exception as e:
-                # Unexpected errors (fallback)
                 log_error(f"Unexpected error loading {expenses_file}: {e}", e)
                 print(f"{config.Messages.ERROR_LOADING_DATA}: {e}")
                 return [], 0.0
@@ -92,30 +58,9 @@ class ExpenseDataManager:
     
     @staticmethod
     def save_expenses(data_folder, expenses_file, expenses, monthly_total):
-        """
-        Save expense data to JSON file.
-        
-        Args:
-            data_folder (str): Path to data folder
-            expenses_file (str): Path to expenses JSON file
-            expenses (list): List of expense dictionaries
-            monthly_total (float): Current monthly total
-            
-        Returns:
-            bool: True if save succeeded, False otherwise
-            
-        Example:
-            success = ExpenseDataManager.save_expenses(
-                "data_2025-10",
-                "data_2025-10/expenses.json",
-                [{"date": "2025-10-19", "amount": 100.0, "description": "Test"}],
-                100.0
-            )
-        """
-        # Create data folder if it doesn't exist
+        """Save expense data to JSON file. Returns True if successful."""
         os.makedirs(data_folder, exist_ok=True)
         
-        # Prepare data structure
         data = {
             'expenses': expenses,
             'monthly_total': monthly_total
@@ -128,44 +73,21 @@ class ExpenseDataManager:
             return True
             
         except PermissionError as e:
-            # Permission denied writing file
             log_error(f"Permission denied writing to {expenses_file}: {e}", e)
             print(f"{config.Messages.ERROR_SAVING_DATA}: Permission denied - {e}")
             return False
         except OSError as e:
-            # OS-level errors (disk full, network issues, read-only filesystem, etc.)
             log_error(f"OS error writing to {expenses_file}: {e}", e)
             print(f"{config.Messages.ERROR_SAVING_DATA}: System error - {e}")
             return False
         except Exception as e:
-            # Unexpected errors (fallback)
             log_error(f"Unexpected error saving to {expenses_file}: {e}", e)
             print(f"{config.Messages.ERROR_SAVING_DATA}: {e}")
             return False
     
     @staticmethod
     def calculate_monthly_total(expenses):
-        """
-        Calculate monthly total from expenses, excluding future expenses.
-        
-        This is useful when you want to show accurate totals that don't include
-        pre-logged future expenses. For example, if today is Oct 19 and you have
-        an expense logged for Oct 25, it won't be counted in the total yet.
-        
-        Args:
-            expenses (list): List of expense dictionaries with 'date' and 'amount' keys
-            
-        Returns:
-            float: Sum of all non-future expense amounts
-            
-        Example:
-            expenses = [
-                {"date": "2025-10-15", "amount": 100.0},  # Past - counted
-                {"date": "2025-10-25", "amount": 50.0}    # Future - not counted
-            ]
-            total = ExpenseDataManager.calculate_monthly_total(expenses)
-            # Returns: 100.0 (only past expenses)
-        """
+        """Calculate monthly total from expenses, excluding future expenses."""
         today = datetime.now().date()
         
         total = sum(

@@ -1,12 +1,4 @@
-"""
-Expense Analytics Module
-
-Provides calculation and analysis functions for expense data.
-All functions are pure (no side effects) and accept expense data as parameters.
-
-This module centralizes all analytics-related calculations that were
-previously scattered in main.py, making the codebase more modular and maintainable.
-"""
+"""Expense analytics calculations. All functions are pure (no side effects)."""
 
 from datetime import datetime, timedelta
 import calendar
@@ -16,12 +8,7 @@ from date_utils import DateUtils
 
 
 class ExpenseAnalytics:
-    """
-    Pure analytics class for expense calculations.
-    
-    All methods are static - they don't modify state, just perform calculations
-    on the data passed to them. This makes testing easier and keeps the logic clean.
-    """
+    """Pure analytics class for expense calculations. All methods are static."""
     
     # ==========================================
     # HELPER METHODS: Expense Filtering
@@ -34,22 +21,13 @@ class ExpenseAnalytics:
         Filter expenses by date range.
         
         Args:
-            expenses (list): List of expense dictionaries
-            start_date (datetime, optional): Start of date range (inclusive). If None, no start limit.
-            end_date (datetime, optional): End of date range (inclusive). If None and current_date provided, excludes future expenses.
-            current_date (datetime, optional): Reference date for "future" filtering. Defaults to today.
+            expenses: List of expense dictionaries
+            start_date: Start of range (inclusive), None for no limit
+            end_date: End of range (inclusive), None excludes future if current_date provided
+            current_date: Reference date for future filtering, defaults to today
         
         Returns:
-            list: Filtered expense list
-        
-        Example:
-            # Get all past expenses
-            past = ExpenseAnalytics._filter_expenses_by_date_range(expenses, end_date=datetime.now())
-            
-            # Get expenses in a specific month
-            month_start = datetime(2025, 10, 1)
-            month_end = datetime(2025, 10, 31)
-            month_expenses = ExpenseAnalytics._filter_expenses_by_date_range(expenses, month_start, month_end)
+            Filtered expense list
         """
         if current_date is None:
             current_date = datetime.now()
@@ -62,16 +40,13 @@ class ExpenseAnalytics:
             
             expense_date = dt.date()
             
-            # Check start date
             if start_date and expense_date < start_date.date():
                 continue
             
-            # Check end date
             if end_date:
                 if expense_date > end_date.date():
                     continue
             elif expense_date > current_date.date():
-                # Default: exclude future expenses if no end_date specified
                 continue
             
             filtered.append(expense)
@@ -84,20 +59,15 @@ class ExpenseAnalytics:
         Filter expenses for a specific month.
         
         Args:
-            expenses (list): List of expense dictionaries
-            month_date (datetime): Any date in the target month
-            exclude_future (bool): If True, exclude expenses after month_date. Default True.
+            expenses: List of expense dictionaries
+            month_date: Any date in the target month
+            exclude_future: If True, exclude expenses after month_date
         
         Returns:
-            list: Expenses for the specified month
-        
-        Example:
-            # Get October 2025 expenses (excluding future)
-            oct_expenses = ExpenseAnalytics._filter_expenses_by_month(expenses, datetime(2025, 10, 15))
+            Expenses for the specified month
         """
         month_start = month_date.replace(day=1)
         
-        # Calculate month end
         if month_date.month == 12:
             month_end = month_date.replace(year=month_date.year + 1, month=1, day=1) - timedelta(days=1)
         else:
@@ -118,16 +88,12 @@ class ExpenseAnalytics:
         Filter expenses for a specific week (Monday to Sunday).
         
         Args:
-            expenses (list): List of expense dictionaries
-            week_date (datetime): Any date in the target week
-            exclude_future (bool): If True, exclude expenses after week_date. Default True.
+            expenses: List of expense dictionaries
+            week_date: Any date in the target week
+            exclude_future: If True, exclude expenses after week_date
         
         Returns:
-            list: Expenses for the specified week
-        
-        Example:
-            # Get current week's expenses (excluding future)
-            week_expenses = ExpenseAnalytics._filter_expenses_by_week(expenses, datetime.now())
+            Expenses for the specified week
         """
         week_start = week_date - timedelta(days=week_date.weekday())  # Monday
         week_end = week_start + timedelta(days=6)  # Sunday
@@ -147,15 +113,11 @@ class ExpenseAnalytics:
         Filter out future expenses (keep only past and today).
         
         Args:
-            expenses (list): List of expense dictionaries
-            current_date (datetime, optional): Reference date. Defaults to today.
+            expenses: List of expense dictionaries
+            current_date: Reference date, defaults to today
         
         Returns:
-            list: Expenses with dates <= current_date
-        
-        Example:
-            # Get all past expenses
-            past = ExpenseAnalytics._filter_past_expenses(expenses)
+            Expenses with dates <= current_date
         """
         if current_date is None:
             current_date = datetime.now()
@@ -176,14 +138,10 @@ class ExpenseAnalytics:
         Get current day progress in the month.
         
         Args:
-            current_date (datetime, optional): Date to calculate from. Defaults to today.
+            current_date: Date to calculate from, defaults to today
             
         Returns:
-            tuple: (current_day, total_days_in_month)
-            
-        Example:
-            >>> calculate_day_progress()
-            (19, 31)  # October 19th out of 31 days
+            (current_day, total_days_in_month)
         """
         if current_date is None:
             current_date = datetime.now()
@@ -199,14 +157,10 @@ class ExpenseAnalytics:
         Get current week progress in the month with decimal precision.
         
         Args:
-            current_date (datetime, optional): Date to calculate from. Defaults to today.
+            current_date: Date to calculate from, defaults to today
             
         Returns:
-            tuple: (precise_week, total_weeks)
-            
-        Example:
-            >>> calculate_week_progress()
-            (2.7, 5)  # Week 2.7 out of 5 weeks
+            (precise_week, total_weeks)
         """
         if current_date is None:
             current_date = datetime.now()
@@ -233,15 +187,14 @@ class ExpenseAnalytics:
     @staticmethod
     def calculate_daily_average(expenses, current_date=None):
         """
-        Calculate average spending per day.
-        Formula: (month total ÷ days elapsed)
+        Calculate average spending per day (month total ÷ days elapsed).
         
         Args:
-            expenses (list): List of expense dictionaries
-            current_date (datetime, optional): Date to calculate from. Defaults to today.
+            expenses: List of expense dictionaries
+            current_date: Date to calculate from, defaults to today
             
         Returns:
-            tuple: (average_per_day, days_elapsed)
+            (average_per_day, days_elapsed)
         """
         if not expenses:
             return 0.0, 0
@@ -267,15 +220,14 @@ class ExpenseAnalytics:
     @staticmethod
     def calculate_weekly_average(expenses, current_date=None):
         """
-        Calculate average spending per week.
-        Formula: (month total ÷ weeks elapsed in month)
+        Calculate average spending per week (month total ÷ weeks elapsed).
         
         Args:
-            expenses (list): List of expense dictionaries
-            current_date (datetime, optional): Date to calculate from. Defaults to today.
+            expenses: List of expense dictionaries
+            current_date: Date to calculate from, defaults to today
             
         Returns:
-            tuple: (average_per_week, weeks_elapsed)
+            (average_per_week, weeks_elapsed)
         """
         if not expenses:
             return 0.0, 0
@@ -305,15 +257,14 @@ class ExpenseAnalytics:
     @staticmethod
     def calculate_weekly_pace(expenses, current_date=None):
         """
-        Calculate current week's spending pace.
-        Formula: (this week's total ÷ days elapsed this week)
+        Calculate current week's spending pace (week total ÷ days elapsed this week).
         
         Args:
-            expenses (list): List of expense dictionaries
-            current_date (datetime, optional): Date to calculate from. Defaults to today.
+            expenses: List of expense dictionaries
+            current_date: Date to calculate from, defaults to today
             
         Returns:
-            tuple: (pace_per_day, days_elapsed_this_week)
+            (pace_per_day, days_elapsed_this_week)
         """
         if not expenses:
             return 0.0, 0
@@ -344,27 +295,14 @@ class ExpenseAnalytics:
         Get previous month's total and name for comparison, with trend indicator.
         
         Args:
-            prev_month_data_folder (str): Folder path for previous month's data (will be recalculated if viewed_month_key provided)
-            current_month_total (float, optional): Current/viewed month's total for comparison
-            viewed_month_key (str, optional): Month being viewed (YYYY-MM format). If provided, calculates contextual previous month.
+            prev_month_data_folder: Folder path for previous month's data
+            current_month_total: Current/viewed month's total for comparison
+            viewed_month_key: Month being viewed (YYYY-MM), calculates contextual previous month if provided
             
         Returns:
-            tuple: (prev_total_formatted, prev_month_name, comparison_indicator)
+            (prev_total_formatted, prev_month_name, comparison_indicator)
             
-            comparison_indicator is a dict with:
-                - 'symbol': '▲' (increase) | '▼' (decrease) | '≈' (similar) | None
-                - 'percentage': float (positive number, e.g., 28.5)
-                - 'direction': 'increase' | 'decrease' | 'similar' | None
-                - 'color': hex color code for the indicator
-            
-        Example:
-            >>> calculate_monthly_trend("data_2025-09", 5176.00)
-            ("$4,523.50", "September 2025", {
-                'symbol': '▲',
-                'percentage': 14.4,
-                'direction': 'increase',
-                'color': '#E67E22'
-            })
+            comparison_indicator dict: 'symbol' (▲/▼/≈), 'percentage', 'direction', 'color'
         """
         # Determine which month's previous month to calculate
         if viewed_month_key:
@@ -440,11 +378,11 @@ class ExpenseAnalytics:
         Calculate median expense amount (typical expense size).
         
         Args:
-            expenses (list): List of expense dictionaries
-            current_date (datetime, optional): Date to calculate from. Defaults to today.
+            expenses: List of expense dictionaries
+            current_date: Date to calculate from, defaults to today
             
         Returns:
-            tuple: (median_amount, count)
+            (median_amount, count)
         """
         if current_date is None:
             current_date = datetime.now()
@@ -475,11 +413,11 @@ class ExpenseAnalytics:
         Get the largest expense amount and description.
         
         Args:
-            expenses (list): List of expense dictionaries
-            current_date (datetime, optional): Date to calculate from. Defaults to today.
+            expenses: List of expense dictionaries
+            current_date: Date to calculate from, defaults to today
             
         Returns:
-            tuple: (amount, description)
+            (amount, description)
         """
         if current_date is None:
             current_date = datetime.now()

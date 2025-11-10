@@ -1,29 +1,4 @@
-"""
-Collapsible Date Combobox Widget
-==================================
-
-A reusable ttk.Combobox wrapper that provides date selection with collapsible
-month sections. Displays all 12 months of the current year with accordion-style
-expansion (only one month visible at a time).
-
-Features:
-- All 12 months (January - December) of current year
-- Accordion behavior: only one month expanded at a time
-- Auto-scroll to expanded month
-- Current month expanded by default
-- Today's date pre-selected
-- Maintains date selection across month changes
-- Uses actual ttk.Combobox with DateCombo styling
-
-Usage:
-    date_picker = CollapsibleDateCombobox(parent_frame, on_select_callback=my_callback)
-    date_picker.grid(row=0, column=0)
-    
-    selected_date = date_picker.get_selected_date()  # Returns "YYYY-MM-DD"
-
-Created: October 26, 2025
-Version: 1.0
-"""
+"""Collapsible date combobox widget with accordion-style month expansion."""
 
 import tkinter as tk
 from tkinter import ttk
@@ -33,17 +8,7 @@ import config
 
 
 class CollapsibleDateCombobox:
-    """
-    Wrapper for ttk.Combobox that adds collapsible month functionality.
-    Uses the ACTUAL ttk.Combobox from the app, not a custom widget.
-    
-    Attributes:
-        combo: The underlying ttk.Combobox widget
-        date_var: StringVar bound to the combobox
-        month_states: Dict tracking which months are expanded
-        all_date_options: List of all date options (separators + dates)
-        last_valid_selection: Last valid date selection (for persistence)
-    """
+    """Wrapper for ttk.Combobox with collapsible month functionality."""
     
     def __init__(self, parent, on_select_callback=None):
         """
@@ -51,20 +16,17 @@ class CollapsibleDateCombobox:
         
         Args:
             parent: Tkinter parent widget
-            on_select_callback: Optional callback function(date_value, date_text)
-                               called when a date is selected
+            on_select_callback: Optional callback(date_value, date_text) when date selected
         """
         self.parent = parent
         self.on_select = on_select_callback
-        self.month_states = {}  # Track which months are expanded/collapsed
-        self.all_date_options = []  # All possible date options
-        self.dropdown_is_open = False  # Track dropdown state
-        self.last_valid_selection = None  # Remember last valid date selection
+        self.month_states = {}
+        self.all_date_options = []
+        self.dropdown_is_open = False
+        self.last_valid_selection = None
         
-        # Create the actual combobox widget (exactly like the app)
         self.date_var = tk.StringVar()
         
-        # Configure style (exactly like the app)
         style = ttk.Style()
         style.map('DateCombo.TCombobox',
                   fieldbackground=[('readonly', config.Colors.DATE_BG)],
@@ -84,43 +46,35 @@ class CollapsibleDateCombobox:
             style='DateCombo.TCombobox'
         )
         
-        # Generate dates and set initial state
         self.generate_all_dates()
         self.update_visible_options()
         self.set_default_date()
         
-        # Bind events
         self.combo.bind('<<ComboboxSelected>>', self.on_selection)
         self.combo.bind('<Button-1>', self.on_dropdown_open)
         self.combo.bind('<FocusOut>', self.on_dropdown_close)
-        self.combo.bind('<MouseWheel>', self.on_mousewheel)  # Windows
-        self.combo.bind('<Button-4>', self.on_mousewheel)    # Linux scroll up
-        self.combo.bind('<Button-5>', self.on_mousewheel)    # Linux scroll down
+        self.combo.bind('<MouseWheel>', self.on_mousewheel)
+        self.combo.bind('<Button-4>', self.on_mousewheel)
+        self.combo.bind('<Button-5>', self.on_mousewheel)
     
     def generate_all_dates(self):
-        """
-        Generate ALL date options for all 12 months of the current year.
-        Creates both month separators (headers) and individual date entries.
-        """
+        """Generate date options for all 12 months of current year."""
         self.all_date_options = []
         today = datetime.now()
         current_month = today.month
         current_year = today.year
         
-        # Generate dates for all 12 months
         for month_num in range(1, 13):
             target_month = month_num
             target_year = current_year
             first_day = datetime(target_year, target_month, 1)
-            month_name = first_day.strftime("%B")  # Full month name (e.g., "October")
+            month_name = first_day.strftime("%B")
             month_key = f"{month_name}_{target_year}"
             last_day = monthrange(target_year, target_month)[1]
             
-            # Only current month is expanded by default
             is_current = (target_month == current_month)
             self.month_states[month_key] = is_current
             
-            # Add month separator (clickable indicator)
             separator_text = f"{'▼' if is_current else '▶'} ─── {month_name} {target_year}"
             if is_current:
                 separator_text += " (Current)"
@@ -132,7 +86,6 @@ class CollapsibleDateCombobox:
                 'month_key': month_key
             })
             
-            # Add dates for this month
             for day in range(1, last_day + 1):
                 date_obj = datetime(target_year, target_month, day)
                 display = f"{day} - {month_name} {target_year}"
@@ -151,18 +104,12 @@ class CollapsibleDateCombobox:
                 })
     
     def update_visible_options(self):
-        """
-        Update the combobox values based on collapsed/expanded state.
-        Only shows separators and dates from expanded months.
-        """
+        """Update combobox values based on collapsed/expanded state."""
         visible_options = []
         
         for option in self.all_date_options:
             if option['type'] == 'separator':
-                # Always show separators (they're the toggle buttons)
-                # Update the arrow based on current state
                 expanded = self.month_states[option['month_key']]
-                # Recreate the separator text with current arrow
                 month_key_parts = option['month_key'].split('_')
                 month_name = month_key_parts[0]
                 year = month_key_parts[1]
@@ -175,11 +122,9 @@ class CollapsibleDateCombobox:
                 
                 visible_options.append(separator_text)
             elif option['type'] == 'date':
-                # Only show dates if their month is expanded
                 if self.month_states.get(option['month_key'], False):
                     visible_options.append(option['text'])
         
-        # Update combobox values
         self.combo['values'] = visible_options
     
     def on_dropdown_open(self, event):
@@ -191,56 +136,41 @@ class CollapsibleDateCombobox:
         self.dropdown_is_open = False
     
     def on_mousewheel(self, event):
-        """
-        Handle mousewheel scrolling to navigate through all dates.
-        Auto-expands months as the user scrolls through them.
-        """
-        # Get current selection
+        """Handle mousewheel scrolling to navigate dates. Auto-expands months as needed."""
         current_text = self.date_var.get()
         
-        # Find current date in all_date_options
         current_index = -1
         for i, option in enumerate(self.all_date_options):
             if option['type'] == 'date' and option['text'] == current_text:
                 current_index = i
                 break
         
-        # If no current selection, start from today
         if current_index == -1:
             for i, option in enumerate(self.all_date_options):
                 if option['type'] == 'date' and option.get('is_today'):
                     current_index = i
                     break
         
-        # Determine scroll direction (Windows uses event.delta, Linux uses event.num)
         if hasattr(event, 'delta'):
-            # Windows: positive delta = scroll up (previous), negative = scroll down (next)
             direction = -1 if event.delta > 0 else 1
         else:
-            # Linux: Button-4 = scroll up (previous), Button-5 = scroll down (next)
             direction = -1 if event.num == 4 else 1
         
-        # Find next/previous date (skip separators)
         new_index = current_index + direction
         while 0 <= new_index < len(self.all_date_options):
             if self.all_date_options[new_index]['type'] == 'date':
-                # Found a date
                 new_option = self.all_date_options[new_index]
                 
-                # Check if we need to expand a different month
                 new_month_key = new_option['month_key']
                 if not self.month_states.get(new_month_key, False):
-                    # Collapse all months and expand the new one (accordion)
                     for key in self.month_states:
                         self.month_states[key] = False
                     self.month_states[new_month_key] = True
                     self.update_visible_options()
                 
-                # Set the new date
                 self.date_var.set(new_option['text'])
                 self.last_valid_selection = new_option['text']
                 
-                # Notify callback if provided
                 if self.on_select:
                     self.on_select(new_option['value'], new_option['text'])
                 
@@ -248,85 +178,60 @@ class CollapsibleDateCombobox:
             
             new_index += direction
         
-        # Prevent default scrolling behavior
         return "break"
     
     def on_selection(self, event):
-        """
-        Handle selection - detect if separator was clicked (to toggle month)
-        or if a date was selected (to notify callback).
-        """
+        """Handle selection - toggle month if separator clicked, notify callback if date selected."""
         selected = self.date_var.get()
         
-        # Check if a separator was selected (starts with arrow)
         if selected.startswith('▶') or selected.startswith('▼'):
-            # Extract month name and year from separator
-            # Format: "▶ ─── Oct 2025 (Current) ───"
             try:
                 parts = selected.split('───')
                 if len(parts) >= 2:
                     month_year_part = parts[1].strip()
-                    # Remove "(Current)" if present
                     month_year_part = month_year_part.replace('(Current)', '').strip()
-                    # Extract month and year
                     month_year_split = month_year_part.split()
                     if len(month_year_split) >= 2:
                         month_name = month_year_split[0]
                         year = month_year_split[1]
                         month_key = f"{month_name}_{year}"
                         
-                        # Accordion behavior: only one month open at a time
-                        # If this month is currently collapsed, expand it and collapse all others
                         if not self.month_states[month_key]:
-                            # Collapse all months
                             for key in self.month_states:
                                 self.month_states[key] = False
-                            # Expand only this month
                             self.month_states[month_key] = True
-                        else:
-                            # If clicking on already-expanded month, just keep it open
-                            # (Don't collapse it, as that would leave no months visible)
-                            pass
                         
-                        # Update the visible options
                         self.update_visible_options()
                         
-                        # Find the first date in the newly expanded month to scroll to it
                         first_date_in_month = None
                         for option in self.all_date_options:
                             if option['type'] == 'date' and option['month_key'] == month_key:
                                 first_date_in_month = option['text']
                                 break
                         
-                        # Temporarily set to the first date of the expanded month to scroll it into view
                         if first_date_in_month:
                             self.combo.set(first_date_in_month)
-                            # Then restore the last valid selection after a brief moment
                             def restore_selection():
                                 if self.last_valid_selection:
                                     self.combo.set(self.last_valid_selection)
                                 else:
-                                    self.combo.set(first_date_in_month)  # Keep it if no previous selection
+                                    self.combo.set(first_date_in_month)
                             self.combo.after(50, restore_selection)
                         else:
-                            # Fallback: restore the last valid selection
                             if self.last_valid_selection:
                                 self.combo.set(self.last_valid_selection)
                             else:
                                 self.combo.set('')
                         
-                        # Force the dropdown to stay open
                         self.combo.after(10, lambda: self.combo.event_generate('<Button-1>'))
                         
                         return
             except Exception as e:
                 print(f"Error parsing separator: {e}")
         
-        # If it's an actual date, save it and call the callback
         if selected and not selected.startswith('▶') and not selected.startswith('▼'):
             self.last_valid_selection = selected
             if self.on_select:
-                # Extract the date value from the display text
                 for option in self.all_date_options:
                     if option['type'] == 'date' and option['text'] == selected:
                         self.on_select(option['value'], selected)
@@ -341,12 +246,7 @@ class CollapsibleDateCombobox:
                 break
     
     def get_selected_date(self):
-        """
-        Get the selected date value in YYYY-MM-DD format.
-        
-        Returns:
-            str: Date in "YYYY-MM-DD" format, or None if no valid date selected
-        """
+        """Get selected date in YYYY-MM-DD format. Returns None if no valid date selected."""
         selected_text = self.date_var.get()
         for option in self.all_date_options:
             if option['type'] == 'date' and option['text'] == selected_text:
@@ -354,18 +254,12 @@ class CollapsibleDateCombobox:
         return None
     
     def set_date(self, date_str):
-        """
-        Set the combobox to a specific date.
-        
-        Args:
-            date_str: Date string in "YYYY-MM-DD" format
-        """
+        """Set combobox to specific date (YYYY-MM-DD format)."""
         for option in self.all_date_options:
             if option['type'] == 'date' and option['value'] == date_str:
                 self.date_var.set(option['text'])
                 self.last_valid_selection = option['text']
                 
-                # Expand the month containing this date
                 month_key = option['month_key']
                 for key in self.month_states:
                     self.month_states[key] = (key == month_key)

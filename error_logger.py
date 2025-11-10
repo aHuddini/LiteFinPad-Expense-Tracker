@@ -21,8 +21,6 @@ class ErrorLogger:
         Returns:
             logging level (INFO or DEBUG) based on settings
         """
-        # Use simple file-based check to avoid circular imports during initialization
-        # (settings_manager imports error_logger functions, so we can't import it here)
         try:
             import configparser
             config = configparser.ConfigParser()
@@ -37,26 +35,22 @@ class ErrorLogger:
     
     def setup_logger(self):
         """Setup the logging configuration"""
-        # Create logs directory if it doesn't exist
         os.makedirs("logs", exist_ok=True)
         log_path = os.path.join("logs", self.log_file)
         
-        # Determine log level from settings.ini
         log_level = self._load_debug_setting()
         
-        # Configure logging
         logging.basicConfig(
             level=log_level,
             format='%(asctime)s - %(levelname)s - %(message)s',
             handlers=[
                 logging.FileHandler(log_path, mode='a', encoding='utf-8'),
-                logging.StreamHandler()  # Also print to console
+                logging.StreamHandler()
             ]
         )
         
         self.logger = logging.getLogger('LiteFinPad')
         
-        # Set the logger and handlers to use the configured level
         self.logger.setLevel(log_level)
         for handler in self.logger.handlers:
             handler.setLevel(log_level)
