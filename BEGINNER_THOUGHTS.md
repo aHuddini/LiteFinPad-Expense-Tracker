@@ -21,7 +21,7 @@ If you're a developer reviewing this code, or a user wondering why we built thin
 I needed **quick spending insights on a monthly basis**—not detailed tracking of every coffee or snack, but a clear picture of where my money went each month. Most expense tracking tools either:
 
 1. **Too complex** - Budgets, categories, forecasting, graphs, reports... I just want monthly totals and key insights!
-2. **Too heavy** - Mobile apps that sync to the cloud, web apps that need internet, desktop apps that take forever to load
+2. **Too heavy** - Mobile apps that sync to the cloud, web apps that need internet, additional data collection telemetry possibly done without a user's knowledge...
 3. **Too Much Friction Onboarding** - Requiring accounts, subscriptions, or uploading my financial data to someone else's server
 
 I'm not trying to track every penny—I want to log major expenses and get a clear monthly summary breakdowns. That's it.
