@@ -19,7 +19,7 @@
 
 Twitter: [@Huddini_2k](https://x.com/Huddini_2k)
 
-Hello World! I'm a beginner to software development and dabbling in the AI-enhanced tech world when I have bandwitdh from delving into my full-time career. 
+Hello World! I'm a beginner to software development, dabbling in the AI-enhanced tech world when I have free time from grindnig at my full-time career. 
 
 This is my first "microapp" project vibe-coded with the help of Cursor AI (using Claude Sonnet 4 as my primary coding model). The development framework is a combination of Python (business logic), Tkinter (GUI) & CustomTkinter (GUI).
 
