@@ -19,13 +19,13 @@
 
 Twitter: [@Huddini_2k](https://x.com/Huddini_2k)
 
-Hello World! I'm a beginner to software development, dabbling in the AI-enhanced tech world when I have free time from grindnig at my full-time career. 
+Hello World! I'm a beginner to software development, dabbling in the AI-enhanced tech world when I have free time from grinding at my full-time career. 
 
-This is my first "microapp" project vibe-coded with the help of Cursor AI (using Claude Sonnet 4 as my primary coding model). The development framework is a combination of Python (business logic), Tkinter (GUI) & CustomTkinter (GUI).
+This is my first "microapp" project vibe-coded with the help of Cursor AI (using Claude Sonnet 4 as my main coding model). The development framework is a combination of Python (business logic), Tkinter (GUI) & CustomTkinter (GUI).
 
-Inspired to think more seriously about my spending habits from watching Caleb Hammer's Financial Audit YouTube series, I built it for my own personal use to solve a need to quickly keep track of large, monthly expenses. While it wasn't a one-shot app, I've been learning a lot about software development and how hard it actually is to build software (despite having powerful AI tools to assist me). 
+Inspired to think more seriously about my spending habits from watching Caleb Hammer's Financial Audit YouTube series, I built it for my own personal use to solve a need to quickly keep track of large, monthly expenses. This wasn't a one-shot app, but I've been learning a lot about software development and how hard it actually is to build software (despite having powerful AI tools to assist me). 
 
-I felt my project was stable enough for daily use to release and open source it out for the public.
+I feel my project is stable enough for daily use to release and open source to the public.
 
 Check my Beginner_Thoughts.md file for how my AI-assisted development's journey been if you're curious :).
 
