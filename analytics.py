@@ -290,7 +290,7 @@ class ExpenseAnalytics:
         return pace_per_day, days_elapsed
     
     @staticmethod
-    def calculate_monthly_trend(prev_month_data_folder, current_month_total=None, viewed_month_key=None):
+    def calculate_monthly_trend(prev_month_data_folder=None, current_month_total=None, viewed_month_key=None):
         """
         Get previous month's total and name for comparison, with trend indicator.
         
@@ -315,7 +315,19 @@ class ExpenseAnalytics:
         
         prev_month_key = prev_month_date.strftime('%Y-%m')
         prev_month_name = prev_month_date.strftime('%B %Y')  # e.g., "September 2025"
-        prev_data_folder = f"data_{prev_month_key}"
+        
+        # Check folders in priority order: test_data (dev) -> expense_data (production) -> root (legacy)
+        test_data_folder = os.path.join("test_data", f"data_{prev_month_key}")
+        expense_data_folder = os.path.join("expense_data", f"data_{prev_month_key}")
+        root_data_folder = f"data_{prev_month_key}"
+        
+        # Determine which folder to use (priority: test_data > expense_data > root)
+        if os.path.exists(test_data_folder):
+            prev_data_folder = test_data_folder
+        elif os.path.exists(expense_data_folder):
+            prev_data_folder = expense_data_folder
+        else:
+            prev_data_folder = root_data_folder
         
         # Check if we have previous month data file
         prev_expenses_file = os.path.join(prev_data_folder, 'expenses.json')

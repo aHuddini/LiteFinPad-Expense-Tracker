@@ -1,5 +1,228 @@
 # LiteFinPad Changelog
 
+## 🚀 Version 3.6.3 - AI Chat Complete Implementation - November 16, 2025
+
+### **Summary**
+v3.6.3 completes the AI Chat system with **direct LLM inference**, **comprehensive refactoring**, **sketching capabilities**, and **improved data organization**. The system now uses `llama-cpp-python` for direct model inference (no Ollama server required), includes a complete modular architecture following AI project best practices, and implements sketching for debugging. Data organization has been improved with dedicated `expense_data/` folder for production and `test_data/` for development.
+
+**Development Status:**
+- 🤖 Direct LLM inference (llama-cpp-python) - November 16, 2025
+- 🏗️ Complete AI architecture refactoring (modular structure)
+- 📝 Sketching system for debugging and analysis
+- 📁 Improved data folder organization (expense_data/test_data)
+- 🔍 Enhanced date parsing and expense extraction
+- ✅ All major features tested and working
+
+---
+
+### ✨ **New Features**
+
+#### **Direct LLM Inference** 🆕
+- **Migrated**: From Ollama HTTP server to direct `llama-cpp-python` inference
+  - No separate Ollama server required
+  - Faster inference (no HTTP overhead)
+  - Simpler deployment (just Python package)
+  - Model loaded in-process, cached for performance
+  - Supports Qwen 0.5B (default), SmolLM 360M, TinyLlama 1.1B
+
+#### **AI Sketching System** 🆕
+- **Added**: Comprehensive sketching for debugging and analysis
+  - Writes sketches to `test_data/temp_AI/` folder
+  - Captures input context, raw AI responses, tool executions, final results
+  - Tracks all thinking steps for transparency
+  - Automatic cleanup after 1 day
+  - Helps diagnose AI processing issues
+
+#### **Data Organization Improvements** 🆕
+- **Test Data Folder**: `test_data/` for development/testing
+  - Sample expense data for 4 months (August-November 2025)
+  - Easy to regenerate with `create_test_data.py`
+  - Keeps test data separate from production
+- **Production Data Folder**: `expense_data/` for user's actual data
+  - Clean organization - all user data in one dedicated folder
+  - Automatic creation when saving data
+  - Legacy support for root directory data (backward compatible)
+- **Priority System**: test_data → expense_data → root (legacy)
+
+#### **Enhanced Date Parsing** 🆕
+- **Improved**: Robust date extraction from user input
+  - Priority: User input parsing > AI extraction > Today default
+  - Supports: "today", "yesterday", "20th", "on the 20th", "the 20th"
+  - Validates and corrects hallucinated dates
+  - Ensures dates are in correct month
+
+#### **Multi-Month Query Support** 🆕
+- **Added**: AI can now analyze expenses across multiple months
+  - Detects queries like "compare this month vs last month", "spending trends", "annual totals"
+  - Automatically loads all available month data folders
+  - Provides comprehensive context to AI for accurate multi-month analysis
+  - Supports up to 12 months of historical data
+  
+#### **Filtered Category Queries** 🆕
+- **Added**: Dedicated handler for specific category/item spending queries
+  - "How much did I spend on groceries?" → "$700.00 on groceries (3 expenses)"
+  - "What did I spend on rent?" → "$1200.00 on rent (1 expense)"
+  - Case-insensitive partial matching on expense descriptions
+  - Returns total amount and count of matching expenses
+
+### 🏗️ **Code Quality & Refactoring**
+
+#### **Complete AI Architecture Refactoring** 🏗️
+- **Restructured**: `AI_py/` folder following best practices from `HeyNina101/generative_ai_project`
+  - **LLM Management**: `llm/manager.py`, `llm/inference.py` - Model lifecycle and inference
+  - **Pipelines**: `pipelines/intent_detector.py`, `pipelines/expense_operations.py`, `pipelines/query_pipeline.py` - Processing pipelines
+  - **Handlers**: `handlers/simple_query_handler.py` - Fast Python-based query handling
+  - **Tools**: `tools/definitions.py`, `tools/dispatcher.py`, `tools/parser.py` - Tool calling system
+  - **Fallback**: `fallback/compute.py` - Fallback computation logic
+  - **Utils**: `utils/data_loader.py`, `utils/context_builder.py`, `utils/temp_file_manager.py` - Utility functions
+  - **Config**: `config/financial_dictionary.py`, `config/prompt_config.py` - Configuration and prompts
+- **QueryEngine Refactoring**: Transformed from 2000+ lines to ~150 lines (facade pattern)
+  - Delegates to specialized modules
+  - Single responsibility principle
+  - Better maintainability and testability
+
+#### **Technical Improvements**
+- **Intent Detection**: Hybrid keyword + AI approach for speed and accuracy
+- **Date Parsing**: Always parse from user input first (more reliable than AI)
+- **Expense Extraction**: Robust JSON parsing with fallback regex extraction
+- **Tool Calling**: Based on `chatllm.cpp` repository patterns
+- **ReAct Pattern**: Transparent thinking process visible to users
+- **Previous Month Fix**: Now correctly loads from test_data/expense_data folders
+
+### 📚 **Documentation**
+
+- **Added**: `docs/internal/AI_CHAT_IMPLEMENTATION_SUMMARY.md` - Complete implementation overview
+- **Added**: `docs/internal/DATA_FOLDER_STRUCTURE.md` - Data organization guide
+- **Added**: `docs/internal/AI_REFACTORING_SUMMARY.md` - Architecture refactoring details
+- **Added**: `test_data/README.md` - Test data documentation
+- **Updated**: `docs/internal/QUERY_ENGINE_REFACTORING_PLAN.md` - Implementation status
+- **Updated**: All test files to reflect new architecture
+
+### ⚡ **Performance**
+
+- **Direct Inference**: Faster than HTTP-based Ollama (no network overhead)
+- **Lazy Loading**: Model loaded only when needed, cached for reuse
+- **Keyword Detection**: Instant intent detection for obvious cases (no AI call)
+- **Simple Query Handler**: Python-based fast path for common queries (instant)
+- **Context Optimization**: Minimal prompts, efficient context building
+- Multi-month queries load up to 12 months efficiently
+- Sample expenses limited to manage token limits (2048 context window)
+
+### 🐛 **Bug Fixes**
+
+- **Previous Month Metric**: Fixed to correctly load from test_data/expense_data folders
+- **Date Parsing**: Fixed "on the 20th" and "yesterday" date extraction
+- **Expense Extraction**: Improved JSON parsing with robust error handling
+- **Intent Detection**: Fixed "$200 rent today" being misclassified as query
+- **Description Cleaning**: Removed "Today" and date words from expense descriptions
+
+---
+
+## 🚀 Version 3.6.2 - AI Chat Integration - November 15, 2025
+
+### **Summary**
+v3.6.2 introduces **AI Chat Integration** - a natural language interface for expense management powered by local AI (Ollama). Users can add, query, and delete expenses using conversational language, with full offline support and privacy. This version includes LangChain integration for conversation memory, structured JSON output for reliable responses, and a robust fallback system for accurate answers.
+
+**Development Status:**
+- 🤖 AI Chat Feature Complete (November 15, 2025)
+- 💬 LangChain conversation memory integrated
+- 🔄 Fallback system for reliable responses
+- 📦 Built on stable v3.6.1 foundation
+
+---
+
+### ✨ **New Features**
+
+#### **AI Chat Integration** 🤖 NEW
+- **Added**: Natural language expense management via AI Chat
+  - Accessible via system tray right-click → "AI Chat"
+  - Standalone CustomTkinter window (non-modal, independent)
+  - 100% offline processing using Ollama local HTTP service
+  - Supports SmolLM 360M, TinyLlama 1.1B, Qwen 0.5B models
+  - Conditional enablement (grayed out if Ollama/model unavailable)
+  
+- **Expense Management via Natural Language**:
+  - **Add Expenses**: "Add $50 for groceries on November 15th"
+    - Single and batch entry support
+    - Natural date parsing (today, yesterday, specific dates)
+    - Description extraction with validation
+  - **Query Expenses**: "What's my largest expense for November?"
+    - Supports largest, lowest, total, category queries
+    - Includes dates in responses
+    - Fast path for general questions
+  - **Delete Expenses**: "Delete the groceries expense for November 15"
+    - Single and batch deletion
+    - AI-powered expense identification
+    - Fuzzy matching fallback
+  
+- **LangChain Integration**:
+  - Conversation memory via `ConversationBufferMemory`
+  - Direct Ollama calls with memory context
+  - Hybrid approach: Direct calls + LangChain memory
+  - Python 3.14+ compatibility (warning suppression)
+  
+- **Structured Output & Fallback System**:
+  - JSON format enforcement for reliable responses
+  - Few-shot examples in prompts
+  - Automatic detection of raw data responses
+  - Python-based computation fallback for common queries
+  - Handles "largest expense", "lowest expense", "total", "what expenses"
+  
+- **User Experience**:
+  - Real-time thinking process display
+  - Fast responses for general/capability questions
+  - Date inclusion in query responses
+  - UI auto-refresh after AI actions
+  - Graceful error messages
+
+- **Settings**: Configure via `settings.ini` [AI] section
+  - `preferred_model`: Default `smollm:360m`
+  - Model selection and caching
+
+---
+
+### 🔧 **Technical Improvements**
+
+#### **AI Module Structure**
+- **New Module**: `/AI_py` folder with dedicated AI code
+  - `AI_py/ai_manager.py` - AI feature lifecycle management
+  - `AI_py/query_engine.py` - Core AI business logic (1,384 lines)
+  - `AI_py/ai_chat_dialog.py` - Standalone chat UI
+  - `AI_py/widgets/__init__.py` - Placeholder for future widgets
+
+#### **System Integration**
+- **System Tray**: Added "AI Chat" menu item with conditional enablement
+- **Settings**: Added `[AI]` section to `settings.ini`
+- **Dependencies**: Added `langchain`, `langchain-ollama`, `langchain-community`, `langchain-classic`, `pydantic`
+
+#### **Performance Optimizations**
+- Hybrid intent detection (keyword + optimized AI)
+- Fast path for general/capability questions (<0.5s)
+- Optimized prompts for small models (SmolLM 360M)
+- Fallback system for instant accurate answers
+
+---
+
+### 📚 **Documentation Updates**
+
+- **Created**: `docs/internal/AI_INTEGRATION_PLAN.md` - Comprehensive integration plan
+- **Created**: `docs/internal/LANGCHAIN_TROUBLESHOOTING.md` - Research and solutions
+- **Created**: `docs/internal/LANGCHAIN_ANALYSIS.md` - LangChain feature analysis
+- **Created**: `docs/internal/LANGCHAIN_VS_LLAMAINDEX.md` - Framework comparison
+- **Created**: `docs/internal/LANGCHAIN_RECOMMENDATION.md` - Implementation recommendation
+- **Updated**: `docs/internal/AI_INTEGRATION_PROGRESS.md` - Progress tracking
+
+---
+
+### ⚠️ **Known Limitations**
+
+- **Edit Expenses**: Placeholder only (Phase 2 feature)
+- **Model Requirements**: Requires Ollama installed and model downloaded
+- **Small Model Limitations**: SmolLM 360M may occasionally return raw data (handled by fallback)
+- **Python 3.14**: LangChain warnings suppressed (framework limitation)
+
+---
+
 ## 🚀 Version 3.6.1 - Dark Mode (Experimental) - November 9, 2025
 
 ### **Summary**

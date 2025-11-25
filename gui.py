@@ -730,12 +730,10 @@ class LiteFinPadGUI:
         # Calculate previous month data with comparison
         # Pass viewed_month only if truly in archive mode (not current month)
         viewed_month = self.expense_tracker.viewed_month if self._is_archive_mode() else None
-        prev_month_date = datetime.now().replace(day=1) - timedelta(days=1)
-        prev_month_key = prev_month_date.strftime('%Y-%m')
-        prev_data_folder = f"data_{prev_month_key}"
+        # Note: calculate_monthly_trend now handles test_data folder automatically
         # Use calculated monthly total for comparison
         trend_text, trend_context, comparison = ExpenseAnalytics.calculate_monthly_trend(
-            prev_data_folder,
+            None,  # prev_month_data_folder is no longer used (calculated internally)
             monthly_total,  # Use calculated monthly total (already filtered for archive/current mode)
             viewed_month
         )

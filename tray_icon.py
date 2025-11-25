@@ -35,6 +35,7 @@ TPM_RETURNCMD = 0x0100
 ID_OPEN = 1001
 ID_QUICK_ADD = 1002
 ID_QUIT = 1003
+ID_AI_CHAT = 1004
 
 
 def win32_safe(default_return=None, operation_name=""):
@@ -78,11 +79,14 @@ class NOTIFYICONDATA(ctypes.Structure):
 class TrayIcon:
     """System tray icon with left-click toggle, double-click quick add, and right-click context menu."""
     
-    def __init__(self, tooltip="LiteFinPad", toggle_callback=None, quick_add_callback=None, quit_callback=None):
+    def __init__(self, tooltip="LiteFinPad", toggle_callback=None, quick_add_callback=None, 
+                 quit_callback=None, ai_chat_callback=None, expense_tracker=None):
         self.tooltip = tooltip
         self.toggle_callback = toggle_callback
         self.quick_add_callback = quick_add_callback
         self.quit_callback = quit_callback
+        self.ai_chat_callback = ai_chat_callback
+        self.expense_tracker = expense_tracker  # For AI availability check
         self.hwnd = None
         self.icon_handle = None
         self.running = False
@@ -410,16 +414,43 @@ class TrayIcon:
         self.pending_single_click_timer = threading.Timer(self.double_click_window, execute_single_click)
         self.pending_single_click_timer.start()
     
+    def _check_ai_available(self) -> bool:
+        """Check if AI Chat is available (Ollama + model installed)."""
+        if not self.expense_tracker:
+            return False
+        
+        try:
+            from AI_py.ai_manager import AIManager
+            ai_manager = AIManager(self.expense_tracker)
+            # Clear cache to ensure fresh check
+            ai_manager.clear_cache()
+            is_available = ai_manager.can_use_ai_chat()
+            log_debug(f"[TRAY] AI Chat availability check: {is_available}")
+            return is_available
+        except Exception as e:
+            log_debug(f"[TRAY] Error checking AI availability: {e}")
+            return False
+    
     def create_context_menu(self):
-        """Create Win32 popup menu with Open, Quick Add, and Quit options."""
+        """Create Win32 popup menu with Open, Quick Add, AI Chat, and Quit options."""
         menu = win32gui.CreatePopupMenu()
         
         win32gui.AppendMenu(menu, MF_STRING, ID_OPEN, "Open LiteFinPad")
         win32gui.AppendMenu(menu, MF_STRING, ID_QUICK_ADD, "Quick Add Expense")
         win32gui.AppendMenu(menu, MF_SEPARATOR, 0, "")  # Separator requires empty string, not None
+        
+        # AI Chat menu item (conditionally enabled)
+        ai_chat_enabled = self._check_ai_available()
+        if ai_chat_enabled:
+            win32gui.AppendMenu(menu, MF_STRING, ID_AI_CHAT, "AI Chat")
+        else:
+            # Grayed out if not available
+            win32gui.AppendMenu(menu, MF_STRING | win32con.MF_GRAYED, ID_AI_CHAT, "AI Chat")
+        
+        win32gui.AppendMenu(menu, MF_SEPARATOR, 0, "")  # Separator before Quit
         win32gui.AppendMenu(menu, MF_STRING, ID_QUIT, "Quit")
         
-        log_debug("[TRAY] Context menu created with 3 items + separator")
+        log_debug(f"[TRAY] Context menu created with AI Chat (enabled={ai_chat_enabled})")
         return menu
     
     @win32_safe(default_return=None, operation_name="show context menu")
@@ -449,6 +480,10 @@ class TrayIcon:
             log_info("[TRAY MENU] Quick Add Expense selected")
             if self.quick_add_callback:
                 self.quick_add_callback()
+        elif cmd == ID_AI_CHAT:
+            log_info("[TRAY MENU] AI Chat selected")
+            if self.ai_chat_callback:
+                self.ai_chat_callback()
         elif cmd == ID_QUIT:
             log_info("[TRAY MENU] Quit selected")
             if self.quit_callback:
@@ -533,9 +568,11 @@ class TrayIcon:
         return self.running and self.thread and self.thread.is_alive()
 
 
-def create_simple_tray_icon(toggle_callback, quick_add_callback=None, quit_callback=None, tooltip="LiteFinPad"):
+def create_simple_tray_icon(toggle_callback, quick_add_callback=None, quit_callback=None, 
+                            ai_chat_callback=None, expense_tracker=None, tooltip="LiteFinPad"):
     """Create a simple tray icon with minimal configuration."""
-    tray = TrayIcon(tooltip, toggle_callback, quick_add_callback, quit_callback)
+    tray = TrayIcon(tooltip, toggle_callback, quick_add_callback, quit_callback, 
+                    ai_chat_callback, expense_tracker)
     return tray
 
 

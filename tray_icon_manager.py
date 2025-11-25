@@ -37,6 +37,7 @@ class TrayIconManager:
         Sets up callbacks for:
         - Toggle window (left click)
         - Quick add dialog (double click)
+        - AI Chat dialog (context menu)
         - Quit application (context menu)
         """
         try:
@@ -52,6 +53,30 @@ class TrayIconManager:
                 except Exception as e:
                     log_error("Error in toggle_app", e)
             
+            def show_ai_chat_main_thread():
+                """Show AI Chat dialog - runs on main thread"""
+                try:
+                    from AI_py.ai_chat_dialog import AIChatDialog
+                    from AI_py.ai_manager import AIManager
+                    
+                    # Check if AI is available
+                    ai_manager = AIManager(self.app)
+                    if not ai_manager.can_use_ai_chat():
+                        from tkinter import messagebox
+                        messagebox.showinfo(
+                            "AI Chat Unavailable",
+                            "AI Chat requires Ollama and SmolLM 360M model.\n\n"
+                            "Install Ollama: https://ollama.com\n"
+                            "Then run: ollama pull smollm:360m",
+                            parent=self.app.root
+                        )
+                        return
+                    
+                    # Show AI Chat dialog
+                    dialog = AIChatDialog(self.app.root, self.app)
+                except Exception as e:
+                    log_error("Error showing AI Chat", e)
+            
             # Generate tooltip with monthly total
             tooltip = self.get_tooltip()
             
@@ -62,6 +87,9 @@ class TrayIconManager:
                 quick_add_callback=self.app.show_quick_add_dialog,
                 # Thread-safe quit: Use gui_queue.put() for main thread execution
                 quit_callback=lambda: self.app.gui_queue.put(self.app.quit_app),
+                # Thread-safe AI Chat: Use gui_queue.put() for main thread execution
+                ai_chat_callback=lambda: self.app.gui_queue.put(show_ai_chat_main_thread),
+                expense_tracker=self.app,  # Pass for AI availability check
                 tooltip=tooltip
             )
             

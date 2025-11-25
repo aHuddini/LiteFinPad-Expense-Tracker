@@ -59,13 +59,19 @@ class ExpenseTracker:
     def __init__(self):
         error_logger.log_application_start()
         
-        self.month_viewer = MonthViewer(data_directory=".")
+        # Use test_data folder for dev/test version
+        self.data_base_dir = "test_data"
+        if not os.path.exists(self.data_base_dir):
+            # Fallback to expense_data folder for production
+            self.data_base_dir = "expense_data"
+        
+        self.month_viewer = MonthViewer(data_directory=self.data_base_dir)
         
         self.current_month = self.month_viewer.actual_month
         self.viewed_month = self.month_viewer.viewed_month
         self.viewing_mode = self.month_viewer.viewing_mode
         
-        self.data_folder = f"data_{self.current_month}"
+        self.data_folder = os.path.join(self.data_base_dir, f"data_{self.current_month}")
         self.expenses_file = os.path.join(self.data_folder, "expenses.json")
         self.calculations_file = os.path.join(self.data_folder, "calculations.json")
         self.expenses = []
@@ -219,7 +225,7 @@ class ExpenseTracker:
         if month_key is None:
             month_key = self.viewed_month
         
-        data_folder = f"data_{month_key}"
+        data_folder = os.path.join(self.data_base_dir, f"data_{month_key}")
         expenses_file = os.path.join(data_folder, "expenses.json")
         
         self.expenses, self.monthly_total = ExpenseDataManager.load_expenses(
@@ -269,7 +275,7 @@ class ExpenseTracker:
             return None  # No special message needed
         else:
             # Expense belongs to a different month - save to that month's folder
-            target_data_folder = f"data_{target_month}"
+            target_data_folder = os.path.join(self.data_base_dir, f"data_{target_month}")
             target_expenses_file = os.path.join(target_data_folder, "expenses.json")
             target_calculations_file = os.path.join(target_data_folder, "calculations.json")
             

@@ -48,9 +48,12 @@ logs/
 # Backups & Test Folders (Too Large for Git)
 # ====================
 backup_*/
+LiteFinPad_Backup_*/
 *.backup
+tests/output/
 test_*/
 test_v*/
+test_data/
 exports/
 *.pdf
 *.xlsx
@@ -89,6 +92,20 @@ archive_old_docs/
 archive_old_specs/
 archive_backups/
 archive_old_animation/
+
+# ====================
+# ML / AI Models and Large Assets
+# ====================
+models/
+models/**
+*.gguf
+*.bin
+*.pth
+*.pt
+*.onnx
+*.ckpt
+*.safetensors
+*.model
 
 # ====================
 # Personal Learning & Development Notes

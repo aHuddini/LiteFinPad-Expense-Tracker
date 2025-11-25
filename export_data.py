@@ -404,12 +404,32 @@ class DataExporterV2:
             import json
             from tkinter import filedialog
             
-            # Scan for all data_* folders
+            # Scan for all data_* folders (check test_data first, then expense_data, then root for legacy)
             log_debug("Scanning for data folders...")
             data_folders = []
+            
+            # Check test_data folder first (for dev/test)
+            test_data_dir = "test_data"
+            if os.path.exists(test_data_dir):
+                for item in os.listdir(test_data_dir):
+                    item_path = os.path.join(test_data_dir, item)
+                    if os.path.isdir(item_path) and item.startswith('data_'):
+                        data_folders.append(item_path)
+            
+            # Check expense_data folder (production)
+            expense_data_dir = "expense_data"
+            if os.path.exists(expense_data_dir):
+                for item in os.listdir(expense_data_dir):
+                    item_path = os.path.join(expense_data_dir, item)
+                    if os.path.isdir(item_path) and item.startswith('data_'):
+                        data_folders.append(item_path)
+            
+            # Also check root directory (legacy support)
             for item in os.listdir('.'):
                 if os.path.isdir(item) and item.startswith('data_'):
-                    data_folders.append(item)
+                    # Skip if already added from expense_data
+                    if os.path.join(expense_data_dir, item) not in data_folders:
+                        data_folders.append(item)
             
             data_folders.sort()  # Sort chronologically
             log_debug(f"Found {len(data_folders)} data folders: {data_folders}")
@@ -440,8 +460,9 @@ class DataExporterV2:
                         # (Don't use saved monthly_total as it excludes future expenses)
                         actual_total = sum(expense.get('amount', 0.0) for expense in expenses_list)
                         
-                        # Extract month from folder name (e.g., data_2025-10 -> 2025-10)
-                        month_key = folder.replace('data_', '')
+                        # Extract month from folder name (e.g., data_2025-10 or test_data/data_2025-10 -> 2025-10)
+                        folder_name = os.path.basename(folder)  # Get just the folder name
+                        month_key = folder_name.replace('data_', '')
                         
                         backup_data["months"][month_key] = {
                             "expenses": expenses_list,

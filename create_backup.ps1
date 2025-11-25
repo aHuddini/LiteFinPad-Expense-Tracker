@@ -1,8 +1,8 @@
 # ============================================================
 # BACKUP CONFIGURATION - Update these values for each backup
 # ============================================================
-$backupVersion = "v3.6.1"
-$backupDescription = "code_simplification_and_cleanup"  # Update this for each backup
+$backupVersion = "v3.6.3"
+$backupDescription = "ai_chat_accuracy_validation_and_query_routing_fixes"  # Update this for each backup
 # ============================================================
 
 $timestamp = Get-Date -Format 'yyyy-MM-dd_HHmmss'
@@ -30,6 +30,98 @@ $info = @'
 **Version:** BACKUP_VERSION_PLACEHOLDER
 
 ## What Changed
+
+### AI Chat Accuracy Validation & Query Routing Fixes (November 17, 2025)
+
+#### **Numerical Accuracy Validation**
+- Added `_validate_answer_accuracy()` method to compare AI responses to calculated values
+- Percentage/ratio queries now validated against Python-calculated values
+- If AI answer differs by >5%, automatically falls back to Python computation
+- Shows calculated value in thinking steps when AI is inaccurate
+- Logs accuracy mismatches for debugging
+
+#### **Consistent Query Routing**
+- Removed percentage/ratio handling from SimpleQueryHandler
+- All percentage/ratio queries now route to AI (with Python fallback)
+- Consistent behavior across all query types
+- Better separation: SimpleQueryHandler for fast queries, AI for analytical queries
+
+#### **Response Formatting Improvements**
+- Strips quotes from AI responses (`"12.4%"` → `12.4%`)
+- Standardized formatting across all responses
+- Cleaner, more professional output
+
+#### **Query Detection Enhancements**
+- Added "typically", "typical", "usually" = average query detection
+- Added "proportion" = ratio query detection
+- Better synonym matching for natural language queries
+
+#### **Multi-Month Query Optimization**
+- All multi-month queries now use Python computation (more reliable)
+- Eliminates verbose AI responses for comparisons
+- Faster and more concise answers
+
+#### **Enhanced Fallback Computer**
+- Added `_compute_percentage()` method for reliable percentage calculations
+- Added `_compute_ratio()` method for ratio calculations
+- Handles all percentage/ratio queries with proper formatting
+- Supports category-specific calculations (rent, groceries, utilities, etc.)
+
+#### **Bug Fixes**
+- Fixed query routing to prevent percentage queries from being misclassified
+- Fixed ratio query detection to exclude from simple query handler
+- Fixed filtered query detection to exclude percentage/ratio queries
+- Improved largest query detection to exclude ratio queries
+
+### AI Chat Complete Implementation (November 16, 2025)
+
+#### **Direct LLM Inference Migration**
+- Migrated from Ollama HTTP server to direct `llama-cpp-python` inference
+- No separate server required - model runs in-process
+- Faster inference, simpler deployment
+- Supports Qwen 0.5B (default), SmolLM 360M, TinyLlama 1.1B
+
+#### **Complete AI Architecture Refactoring**
+- Restructured `AI_py/` folder following best practices
+- Modular architecture: LLM management, pipelines, handlers, tools, fallback, utils
+- QueryEngine reduced from 2000+ lines to ~150 lines (facade pattern)
+- Better separation of concerns, single responsibility principle
+- Improved maintainability and testability
+
+#### **Sketching System**
+- Comprehensive sketching for debugging and analysis
+- Writes to `test_data/temp_AI/` folder
+- Captures input context, raw AI responses, tool executions, final results
+- Tracks all thinking steps for transparency
+- Automatic cleanup after 1 day
+
+#### **Data Organization Improvements**
+- **Test Data Folder**: `test_data/` for development/testing
+  - Sample expense data for 4 months
+  - Easy regeneration with `create_test_data.py`
+- **Production Data Folder**: `expense_data/` for user's actual data
+  - Clean organization - all user data in dedicated folder
+  - Automatic creation when saving data
+- **Priority System**: test_data → expense_data → root (legacy support)
+
+#### **Enhanced Features**
+- **Date Parsing**: Robust extraction with priority system (user input > AI > default)
+- **Expense Extraction**: Improved JSON parsing with fallback regex
+- **Intent Detection**: Hybrid keyword + AI approach for speed
+- **Tool Calling**: Based on `chatllm.cpp` repository patterns
+- **ReAct Pattern**: Transparent thinking process visible to users
+
+#### **Bug Fixes**
+- Fixed previous month metric to load from correct folders
+- Fixed date parsing for "on the 20th" and "yesterday"
+- Fixed intent misclassification for expense additions
+- Fixed description cleaning (removed date words)
+
+#### **Documentation**
+- Created comprehensive AI implementation summary
+- Documented data folder structure
+- Updated all test files for new architecture
+- Created test data documentation
 
 ### Code Simplification & Documentation Cleanup (November 10, 2025)
 - **Docstring Simplification**: Achieved 50% reduction in docstring lines

@@ -323,11 +323,9 @@ class DashboardPageBuilder:
         # Calculate previous month data with comparison
         # Pass viewed_month only if truly in archive mode (not current month)
         viewed_month = self.tracker.viewed_month if self.callbacks['is_archive_mode']() else None
-        prev_month_date = datetime.now().replace(day=1) - timedelta(days=1)
-        prev_month_key = prev_month_date.strftime('%Y-%m')
-        prev_data_folder = f"data_{prev_month_key}"
+        # Note: calculate_monthly_trend now handles test_data folder automatically
         prev_month_total, prev_month_name, comparison = ExpenseAnalytics.calculate_monthly_trend(
-            prev_data_folder,
+            None,  # prev_month_data_folder is no longer used (calculated internally)
             self.tracker.monthly_total,
             viewed_month
         )
