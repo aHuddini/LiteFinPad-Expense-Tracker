@@ -1,9 +1,6 @@
 name: Mirror to Gitea
 
 on:
-  push:
-    branches: ["**"]
-    tags: ["**"]
   schedule:
     - cron: '0 */10 * * *'
 
